@@ -8,6 +8,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.google.gson.Gson;
 import com.neovisionaries.ws.client.WebSocket;
 import com.neovisionaries.ws.client.WebSocketAdapter;
 import com.neovisionaries.ws.client.WebSocketException;
@@ -27,20 +28,39 @@ import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String sServerID = "AAAAAAAAAAAAAAAAAAAAAA";
+    private String sClientID = "";
+
+    Gson gson = new Gson();
     WebSocketFactory factory = new WebSocketFactory();
-    WebSocket ws;
+    WebSocket ws = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+    }
+
+    @Override
+    public void onStart()
+    {
         new Thread() {
             @Override
             public void run() {
                 connectWebSocket();
             }
         }.start();
+        super.onStart();
     }
 
+    @Override
+    public void onPause(){
+        if(ws != null) {
+            ws.disconnect();
+            ws = null;
+        }
+
+        super.onPause();
+    }
 
     private void connectWebSocket() {
 
@@ -99,7 +119,30 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onTextMessage(WebSocket websocket, String text) throws Exception
                 {
-                    Log.i("MESSAGE", "onTextMessage " + text);
+                    String msgFrom;
+                    // need to handle messaging here for now
+                    Log.i("MESSAGE", "onTextMessage ");
+                    MessageData msg = gson.fromJson(text, MessageData.class);
+                    switch (msg.getType()){
+                        case "id":
+                            sClientID = msg.getText();
+                            Log.i("MESSAGE", "Our Client ID is: " + sClientID);
+                            break;
+                        case "message":
+                            if(msg.getFrom() != null){
+                                msgFrom = msg.getFrom();
+                            }else if(msg.getClientID() != null){
+                                msgFrom = msg.getClientID();
+                            }
+                            else
+                                msgFrom = "Unknown";
+
+                            Log.i("MESSAGE", "Message From: " + msgFrom + " Data: " + msg.getText());
+                            break;
+                        default:
+                            Log.e("MESSAGE", "UNKNOWN MESSAGE type data received: " + text);
+                    }
+
                 }
 
 
@@ -229,7 +272,6 @@ public class MainActivity extends AppCompatActivity {
             Log.e("ERROR", ex.getMessage());
         }
 
-
     }
 
     public void sendMessage(View view) {
@@ -241,6 +283,8 @@ public class MainActivity extends AppCompatActivity {
                 string.put("clientID", "Android");
                 string.put("type", "message");
                 string.put("text", message);
+                string.put("to", null);
+                string.put("from", sClientID);
                 string.put("date", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(new Date()));
                 ws.sendText(string.toString());
             }
