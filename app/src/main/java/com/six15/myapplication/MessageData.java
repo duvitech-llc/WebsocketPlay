@@ -13,6 +13,14 @@ public class MessageData {
         this.clientID = clientID;
     }
 
+    public String getHandler() {
+        return handler;
+    }
+
+    public void setHandler(String handler) {
+        this.handler = handler;
+    }
+
     public String getType() {
         return type;
     }
@@ -21,12 +29,12 @@ public class MessageData {
         this.type = type;
     }
 
-    public String getText() {
-        return text;
+    public String getDatatype() {
+        return datatype;
     }
 
-    public void setText(String text) {
-        this.text = text;
+    public void setDatatype(String datatype) {
+        this.datatype = datatype;
     }
 
     public String getTo() {
@@ -45,6 +53,23 @@ public class MessageData {
         this.from = from;
     }
 
+    public String getDispname() {
+        return dispname;
+    }
+
+    public void setDispname(String dispname) {
+        this.dispname = dispname;
+    }
+
+    public String getPayload() {
+        return payload;
+    }
+
+    public void setPayload(String payload) {
+        this.payload = payload;
+    }
+
+
     public String getDate() {
         return date;
     }
@@ -54,10 +79,13 @@ public class MessageData {
     }
 
     private String clientID;
+    private String handler;
+    private String dispname;
     private String type;
-    private String text;
+    private String datatype;
     private String to;
     private String from;
+    private String payload;
     private String date;
 
 

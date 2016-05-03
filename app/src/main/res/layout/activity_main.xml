@@ -25,7 +25,8 @@
     <LinearLayout
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:id="@+id/linearLayout">
 
         <EditText
             android:id="@+id/message"
@@ -43,4 +44,11 @@
             android:onClick="sendMessage"/>
 
     </LinearLayout>
+
+    <android.opengl.GLSurfaceView
+        android:id="@+id/glview_call"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/linearLayout"
+        android:layout_alignParentStart="true" />
 </RelativeLayout>
