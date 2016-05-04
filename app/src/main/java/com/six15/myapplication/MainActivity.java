@@ -10,8 +10,10 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.Toast;
 
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.webrtc.MediaStream;
 import org.webrtc.VideoRenderer;
@@ -24,6 +26,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity  implements WebRtcClient.RtcListener{
 
     public static final String sServerID = "AAAAAAAAAAAAAAAAAAAAAA";
+    private static final String TAG = "MainActivity";
     private String callerId = "";
     private final static int VIDEO_CALL_SENT = 666;
     private static final String VIDEO_CODEC_VP9 = "VP9";
@@ -46,6 +49,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     private VideoRendererGui.ScalingType scalingType = VideoRendererGui.ScalingType.SCALE_ASPECT_FILL;
     private GLSurfaceView vsv;
     private VideoRenderer.Callbacks remoteRender;
+    private VideoRenderer.Callbacks localRender;
     private WebRtcClient client;
     private String mSignalingServerAddress;
 
@@ -77,6 +81,10 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         remoteRender = VideoRendererGui.create(
                 REMOTE_X, REMOTE_Y,
                 REMOTE_WIDTH, REMOTE_HEIGHT, scalingType, false);
+
+        localRender = VideoRendererGui.create(
+                LOCAL_X_CONNECTING, LOCAL_Y_CONNECTING,
+                LOCAL_WIDTH_CONNECTING, LOCAL_HEIGHT_CONNECTING, scalingType, true);
 
         final Intent intent = getIntent();
         final String action = intent.getAction();
@@ -138,26 +146,89 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
 
     @Override
     public void onCallReady(String callId) {
+        Log.i(TAG, "onCallReady");
+        if (callerId != null) {
+            try {
+                answer(callerId);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        } else {
+            call(callId);
+        }
+    }
 
+    public void answer(String callerId) throws JSONException {
+        client.sendMessage(callerId, "init", null);
+        startCam();
+    }
+
+    public void call(String callId) {
+        Intent msg = new Intent(Intent.ACTION_SEND);
+        // TODO: probably need to make this a message
+        msg.putExtra(Intent.EXTRA_TEXT, mSignalingServerAddress + "/" + callId);
+        msg.setType("text/plain");
+        startActivityForResult(Intent.createChooser(msg, "Call someone :"), VIDEO_CALL_SENT);
+    }
+
+    public void startCam() {
+        // Camera settings
+        client.start("android_test");
     }
 
     @Override
-    public void onStatusChanged(String newStatus) {
+    public void onStatusChanged(final String newStatus) {
+        Log.i(TAG, "onStatusChanged: " + newStatus);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), newStatus, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
 
+    @Override
+    public void onMessage(String from, String msg) {
+        final String dispMessage = from + ": " + msg;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), dispMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override
     public void onLocalStream(MediaStream localStream) {
-
+        Log.i(TAG, "onLocalStream");
+        localStream.videoTracks.get(0).addRenderer(new VideoRenderer(localRender));
+        VideoRendererGui.update(localRender,
+                LOCAL_X_CONNECTING, LOCAL_Y_CONNECTING,
+                LOCAL_WIDTH_CONNECTING, LOCAL_HEIGHT_CONNECTING,
+                scalingType);
     }
 
     @Override
     public void onAddRemoteStream(MediaStream remoteStream, int endPoint) {
+        Log.i(TAG, "onAddRemoteStream");
+        remoteStream.videoTracks.get(0).addRenderer(new VideoRenderer(remoteRender));
+        VideoRendererGui.update(remoteRender,
+                REMOTE_X, REMOTE_Y,
+                REMOTE_WIDTH, REMOTE_HEIGHT, scalingType);
+        VideoRendererGui.update(localRender,
+                LOCAL_X_CONNECTED, LOCAL_Y_CONNECTED,
+                LOCAL_WIDTH_CONNECTED, LOCAL_HEIGHT_CONNECTED,
+                scalingType);
 
     }
 
     @Override
     public void onRemoveRemoteStream(int endPoint) {
+        Log.i(TAG, "onRemoveRemoteStream");
+        VideoRendererGui.update(localRender,
+                LOCAL_X_CONNECTING, LOCAL_Y_CONNECTING,
+                LOCAL_WIDTH_CONNECTING, LOCAL_HEIGHT_CONNECTING,
+                scalingType);
 
     }
 

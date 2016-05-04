@@ -60,6 +60,8 @@ public class WebRtcClient {
 
         void onStatusChanged(String newStatus);
 
+        void onMessage(String from, String msg);
+
         void onLocalStream(MediaStream localStream);
 
         void onAddRemoteStream(MediaStream remoteStream, int endPoint);
@@ -358,6 +360,7 @@ public class WebRtcClient {
                                 if(msg.getDatatype() != null && msg.getDatatype().compareTo("text")==0){
                                     // text message
                                     Log.i("TextMessage", msgFrom + ": " + msg.getPayload());
+                                    mListener.onMessage(msgFrom, msg.getPayload());
                                 }else{
                                     JSONObject payload = null;
                                     try {
@@ -630,7 +633,7 @@ public class WebRtcClient {
     }
 
     private VideoCapturer getVideoCapturer() {
-        String frontCameraDeviceName = VideoCapturerAndroid.getNameOfBackFacingDevice();
+        String frontCameraDeviceName = VideoCapturerAndroid.getNameOfFrontFacingDevice();
         return VideoCapturerAndroid.create(frontCameraDeviceName);
     }
 
