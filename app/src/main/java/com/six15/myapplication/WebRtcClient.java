@@ -46,7 +46,7 @@ public class WebRtcClient {
     private RtcListener mListener;
     private String assignedId = "UNKNOWN";
     private HashMap<String, Command> commandMap;
-    private String friendlyName;
+    private String friendlyName = null;
 
     WebSocket ws = null;
 
@@ -392,6 +392,9 @@ public class WebRtcClient {
                             }
 
                             break;
+                        case "stream":
+                            Log.i("stream", "Stream Handler: " + text);
+                            break;
                         default:
                             Log.e("MESSAGE", "UNKNOWN MESSAGE type data received: " + text);
                     }
@@ -534,14 +537,14 @@ public class WebRtcClient {
                 params.videoCodecHwAcceleration, mEGLcontext);
         factory = new PeerConnectionFactory();
 
-        connectWebSocket(host);
-
         iceServers.add(new PeerConnection.IceServer("stun:23.21.150.121"));
         iceServers.add(new PeerConnection.IceServer("stun:stun.l.google.com:19302"));
 
         pcConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
         pcConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"));
         pcConstraints.optional.add(new MediaConstraints.KeyValuePair("DtlsSrtpKeyAgreement", "true"));
+
+        connectWebSocket(host);
 
     }
 
@@ -633,7 +636,7 @@ public class WebRtcClient {
     }
 
     private VideoCapturer getVideoCapturer() {
-        String frontCameraDeviceName = VideoCapturerAndroid.getNameOfFrontFacingDevice();
+        String frontCameraDeviceName = VideoCapturerAndroid.getNameOfBackFacingDevice();
         return VideoCapturerAndroid.create(frontCameraDeviceName);
     }
 

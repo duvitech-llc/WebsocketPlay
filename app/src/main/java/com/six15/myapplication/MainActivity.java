@@ -164,11 +164,18 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     }
 
     public void call(String callId) {
+        // no need to do this unless we are placing a call
+        // this can be startcam or client.start(friendlyName)
+        String name = callId;
+
+        client.start(name);
+/*
         Intent msg = new Intent(Intent.ACTION_SEND);
         // TODO: probably need to make this a message
         msg.putExtra(Intent.EXTRA_TEXT, mSignalingServerAddress + "/" + callId);
         msg.setType("text/plain");
         startActivityForResult(Intent.createChooser(msg, "Call someone :"), VIDEO_CALL_SENT);
+*/
     }
 
     public void startCam() {
