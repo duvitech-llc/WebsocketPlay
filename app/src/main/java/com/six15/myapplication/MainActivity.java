@@ -159,11 +159,13 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     }
 
     public void answer(String callerId) throws JSONException {
+        Log.i(TAG, "answer Caller: " + callerId);
         client.sendMessage(callerId, "init", null);
         startCam();
     }
 
     public void call(String callId) {
+        Log.i(TAG, "call Caller: " + callId);
         // no need to do this unless we are placing a call
         // this can be startcam or client.start(friendlyName)
         String name = callId;
