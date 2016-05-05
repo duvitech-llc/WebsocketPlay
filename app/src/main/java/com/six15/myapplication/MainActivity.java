@@ -27,7 +27,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
 
     public static final String sServerID = "AAAAAAAAAAAAAAAAAAAAAA";
     private static final String TAG = "MainActivity";
-    private String callerId = "";
+    private String callerId = null;
     private final static int VIDEO_CALL_SENT = 666;
     private static final String VIDEO_CODEC_VP9 = "VP9";
     private static final String AUDIO_CODEC_OPUS = "opus";
@@ -170,7 +170,8 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         // this can be startcam or client.start(friendlyName)
         String name = callId;
 
-        client.start(name);
+        //TODO: need to get friendly name of this device
+        client.start("Nexus_Device");
 /*
         Intent msg = new Intent(Intent.ACTION_SEND);
         // TODO: probably need to make this a message
