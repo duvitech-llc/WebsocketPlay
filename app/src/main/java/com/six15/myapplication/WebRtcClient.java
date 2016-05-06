@@ -286,6 +286,7 @@ public class WebRtcClient {
                 public void onFrame(WebSocket websocket, WebSocketFrame frame) throws Exception
                 {
                     Log.i("MESSAGE", "onFrame");
+                    Log.i("MESSAGE", frame.toString());
                 }
 
 
@@ -355,9 +356,9 @@ public class WebRtcClient {
                             else
                                 msgFrom = "Unknown";
                             msgType = msg.getType();
-                            if(msgType != null && msgType.compareTo("message")==0) {
+                            if(msgType != null) {
                                 Log.i("WEBRTC", "MessageHandler");
-                                if(msg.getDatatype() != null && msg.getDatatype().compareTo("text")==0){
+                                if(msgType.compareTo("message")==0 && msg.getDatatype() != null && msg.getDatatype().compareTo("text")==0){
                                     // text message
                                     Log.i("TextMessage", msgFrom + ": " + msg.getPayload());
                                     mListener.onMessage(msgFrom, msg.getPayload());
@@ -384,9 +385,6 @@ public class WebRtcClient {
                                         Log.e("Handler", "Payload Problem: " + e.getStackTrace());
                                     }
                                 }
-
-                            }else if (msgType.compareTo("text")==0){
-                                // traditional text message received display to screen
                             }else{
                                 Log.e("Handler", "Message type is NULL: " + text);
                             }
@@ -413,6 +411,7 @@ public class WebRtcClient {
                 public void onSendingFrame(WebSocket websocket, WebSocketFrame frame) throws Exception
                 {
                     Log.i("MESSAGE", "onSendingFrame");
+                    Log.i("MESSAGE", frame.toString());
                 }
 
 
