@@ -1,5 +1,7 @@
 package com.six15.myapplication;
 
+import org.json.JSONObject;
+
 /**
  * Created by George on 5/3/2016.
  */
@@ -61,14 +63,21 @@ public class MessageData {
         this.dispname = dispname;
     }
 
-    public String getPayload() {
+    public JSONObject getPayload() {
         return payload;
     }
 
-    public void setPayload(String payload) {
+    public void setPayload(JSONObject payload) {
         this.payload = payload;
     }
 
+    public String getData() {
+        return data;
+    }
+
+    public void setData(String data) {
+        this.data = data;
+    }
 
     public String getDate() {
         return date;
@@ -85,8 +94,10 @@ public class MessageData {
     private String datatype;
     private String to;
     private String from;
-    private String payload;
+    private JSONObject payload;
+    private String data;
     private String date;
+
 
 
 }

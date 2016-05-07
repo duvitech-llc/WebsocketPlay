@@ -135,10 +135,11 @@ public class WebRtcClient {
             message.put("handler", "message");
             message.put("dispname", friendlyName);
             message.put("type", type);
-            message.put("msgtype", "json");
+            message.put("datatype", "json");
             message.put("to", to);
             message.put("from", assignedId);
             message.put("payload", payload);
+            message.put("data", null);
             message.put("date", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(new Date()));
 
             ws.sendText(message.toString());
@@ -147,17 +148,18 @@ public class WebRtcClient {
         }
     }
 
-    public void sendTextMessage(String to, String type, String payload) throws JSONException {
+    public void sendTextMessage(String to, String type, String data) throws JSONException {
         if(ws != null && ws.isOpen()) {
             JSONObject message = new JSONObject();
             message.put("clientId", assignedId);
             message.put("handler", "message");
             message.put("dispname", friendlyName);
             message.put("type", type);
-            message.put("msgtype", "text");
+            message.put("datatype", "text");
             message.put("to", to);
             message.put("from", assignedId);
-            message.put("payload", payload);
+            message.put("payload", null);
+            message.put("data", data);
             message.put("date", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(new Date()));
 
             ws.sendText(message.toString());
@@ -343,7 +345,7 @@ public class WebRtcClient {
                     MessageData msg = gson.fromJson(text, MessageData.class);
                     switch (msg.getHandler()){
                         case "id":
-                            assignedId = msg.getPayload();
+                            assignedId = msg.getData();
                             Log.i("Handler", "Our ID is: " + assignedId);
                             mListener.onCallReady(assignedId);
                             break;
@@ -360,13 +362,13 @@ public class WebRtcClient {
                                 Log.i("WEBRTC", "MessageHandler");
                                 if(msgType.compareTo("message")==0 && msg.getDatatype() != null && msg.getDatatype().compareTo("text")==0){
                                     // text message
-                                    Log.i("TextMessage", msgFrom + ": " + msg.getPayload());
-                                    mListener.onMessage(msgFrom, msg.getPayload());
+                                    Log.i("TextMessage", msgFrom + ": " + msg.getData());
+                                    mListener.onMessage(msgFrom, msg.getData());
                                 }else{
                                     JSONObject payload = null;
                                     try {
                                         if (msgType.compareTo("init")!=0) {
-                                            payload = new JSONObject(msg.getPayload());
+                                            payload = msg.getPayload();
                                         }
                                         // if peer is unknown and is not the server, try to add him
                                         // though at some point the server may stream directly to the HUD
@@ -635,7 +637,7 @@ public class WebRtcClient {
     }
 
     private VideoCapturer getVideoCapturer() {
-        String frontCameraDeviceName = VideoCapturerAndroid.getNameOfBackFacingDevice();
+        String frontCameraDeviceName = VideoCapturerAndroid.getNameOfFrontFacingDevice();
         return VideoCapturerAndroid.create(frontCameraDeviceName);
     }
 

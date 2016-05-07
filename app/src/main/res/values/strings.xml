@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">My Application</string>
     <string name="hello_world">Hello world!</string>
-    <string name="server_host">six15wifiportal.azurewebsites.net/ws</string>
-    <string name="server_test">192.168.1.68/ws</string>
+    <string name="server_host">192.168.1.113/ws</string>
 </resources>
