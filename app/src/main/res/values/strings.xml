@@ -1,6 +1,5 @@
 <resources>
-    <string name="app_name">My Application</string>
-    <string name="hello_world">Hello world!</string>
-    <string name="server_host">192.168.1.113/ws</string>
+    <string name="app_name">Telestrate</string>
+    <string name="server_host">six15wifiportal.azurewebsites.net/ws</string>
 
 </resources>
