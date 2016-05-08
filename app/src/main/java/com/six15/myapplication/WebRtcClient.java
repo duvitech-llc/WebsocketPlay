@@ -20,6 +20,9 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
 import com.neovisionaries.ws.client.WebSocket;
 import com.neovisionaries.ws.client.WebSocketAdapter;
 import com.neovisionaries.ws.client.WebSocketException;
@@ -70,10 +73,10 @@ public class WebRtcClient {
     }
 
     private interface Command{
-        void execute(String peerId, JSONObject payload) throws JSONException;
+        void execute(String peerId, JsonObject payload) throws JSONException;
     }
     private class CreateOfferCommand implements Command{
-        public void execute(String peerId, JSONObject payload) throws JSONException {
+        public void execute(String peerId, JsonObject payload) throws JSONException {
             Log.d(TAG,"CreateOfferCommand");
             Peer peer = peers.get(peerId);
             peer.pc.createOffer(peer, pcConstraints);
@@ -81,12 +84,13 @@ public class WebRtcClient {
     }
 
     private class CreateAnswerCommand implements Command{
-        public void execute(String peerId, JSONObject payload) throws JSONException {
+        public void execute(String peerId, JsonObject payload) throws JSONException {
             Log.d(TAG,"CreateAnswerCommand");
             Peer peer = peers.get(peerId);
+            Log.d(TAG,"payload: " + payload.toString());
             SessionDescription sdp = new SessionDescription(
-                    SessionDescription.Type.fromCanonicalForm(payload.getString("type")),
-                    payload.getString("sdp")
+                    SessionDescription.Type.fromCanonicalForm(payload.get("type").toString()),
+                    payload.get("sdp").toString()
             );
             peer.pc.setRemoteDescription(peer, sdp);
             peer.pc.createAnswer(peer, pcConstraints);
@@ -94,26 +98,33 @@ public class WebRtcClient {
     }
 
     private class SetRemoteSDPCommand implements Command{
-        public void execute(String peerId, JSONObject payload) throws JSONException {
+        public void execute(String peerId, JsonObject payload) throws JSONException {
             Log.d(TAG,"SetRemoteSDPCommand");
+            Log.d(TAG,"SetRemoteSDPCommand PeerId: " + peerId);
             Peer peer = peers.get(peerId);
+            Log.d(TAG,"payload: " + payload.toString());
+            Log.d(TAG,"type: " + payload.get("type"));
+            String sType = payload.get("type").getAsString();
+
             SessionDescription sdp = new SessionDescription(
-                    SessionDescription.Type.fromCanonicalForm(payload.getString("type")),
-                    payload.getString("sdp")
+                    SessionDescription.Type.fromCanonicalForm(sType),
+                    payload.get("sdp").getAsString()
             );
+
             peer.pc.setRemoteDescription(peer, sdp);
         }
     }
 
     private class AddIceCandidateCommand implements Command{
-        public void execute(String peerId, JSONObject payload) throws JSONException {
+        public void execute(String peerId, JsonObject payload) throws JSONException {
             Log.d(TAG,"AddIceCandidateCommand");
             PeerConnection pc = peers.get(peerId).pc;
+            Log.d(TAG,"payload: " + payload.toString());
             if (pc.getRemoteDescription() != null) {
                 IceCandidate candidate = new IceCandidate(
-                        payload.getString("id"),
-                        payload.getInt("label"),
-                        payload.getString("candidate")
+                        payload.get("id").getAsString(),
+                        payload.get("label").getAsInt(),
+                        payload.get("candidate").getAsString()
                 );
                 pc.addIceCandidate(candidate);
             }
@@ -128,7 +139,7 @@ public class WebRtcClient {
      * @param payload payload of message
      * @throws JSONException
      */
-    public void sendMessage(String to, String type, JSONObject payload) throws JSONException {
+    public void sendMessage(String to, String type, JsonElement payload) throws JSONException {
         if(ws != null && ws.isOpen()) {
             JSONObject message = new JSONObject();
             message.put("clientId", assignedId);
@@ -138,7 +149,7 @@ public class WebRtcClient {
             message.put("datatype", "json");
             message.put("to", to);
             message.put("from", assignedId);
-            message.put("payload", payload);
+            message.put("payload", payload.toString());
             message.put("data", null);
             message.put("date", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(new Date()));
 
@@ -177,9 +188,9 @@ public class WebRtcClient {
         public void onCreateSuccess(final SessionDescription sdp) {
             // TODO: modify sdp to use pcParams prefered codecs
             try {
-                JSONObject payload = new JSONObject();
-                payload.put("type", sdp.type.canonicalForm());
-                payload.put("sdp", sdp.description);
+                JsonObject payload = new JsonObject();
+                payload.addProperty("type", sdp.type.canonicalForm());
+                payload.addProperty("sdp", sdp.description);
                 sendMessage(id, sdp.type.canonicalForm(), payload);
                 pc.setLocalDescription(Peer.this, sdp);
             } catch (JSONException e) {
@@ -213,10 +224,10 @@ public class WebRtcClient {
         @Override
         public void onIceCandidate(final IceCandidate candidate) {
             try {
-                JSONObject payload = new JSONObject();
-                payload.put("label", candidate.sdpMLineIndex);
-                payload.put("id", candidate.sdpMid);
-                payload.put("candidate", candidate.sdp);
+                JsonObject payload = new JsonObject();
+                payload.addProperty("label", candidate.sdpMLineIndex);
+                payload.addProperty("id", candidate.sdpMid);
+                payload.addProperty("candidate", candidate.sdp);
                 sendMessage(id, "candidate", payload);
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -345,7 +356,7 @@ public class WebRtcClient {
                     MessageData msg = gson.fromJson(text, MessageData.class);
                     switch (msg.getHandler()){
                         case "id":
-                            assignedId = msg.getData();
+                            assignedId = (String)msg.getData();
                             Log.i("Handler", "Our ID is: " + assignedId);
                             mListener.onCallReady(assignedId);
                             break;
@@ -363,17 +374,18 @@ public class WebRtcClient {
                                 if(msgType.compareTo("message")==0 && msg.getDatatype() != null && msg.getDatatype().compareTo("text")==0){
                                     // text message
                                     Log.i("TextMessage", msgFrom + ": " + msg.getData());
-                                    mListener.onMessage(msgFrom, msg.getData());
+                                    mListener.onMessage(msgFrom, (String) msg.getData());
                                 }else{
-                                    JSONObject payload = null;
+                                    JsonObject payload = msg.getPayload().isJsonNull()? new JsonObject():msg.getPayload().getAsJsonObject();
                                     try {
                                         if (msgType.compareTo("init")!=0) {
-                                            payload = msg.getPayload();
+                                            Log.i(TAG, "Init call");
                                         }
                                         // if peer is unknown and is not the server, try to add him
                                         // though at some point the server may stream directly to the HUD
                                         if (!peers.containsKey(msgFrom) && msgFrom.compareTo(MainActivity.sServerID)!=0) {
                                             // if MAX_PEER is reach, ignore the call
+                                            Log.i(TAG, "Add Peer");
                                             int endPoint = findEndPoint();
                                             if (endPoint != MAX_PEER) {
                                                 Peer peer = addPeer(msgFrom, endPoint);
@@ -381,6 +393,7 @@ public class WebRtcClient {
                                                 commandMap.get(msgType).execute(msgFrom, payload);
                                             }
                                         } else {
+                                            Log.i(TAG, "Command Map: " + msgType);
                                             commandMap.get(msgType).execute(msgFrom, payload);
                                         }
                                     }catch(JSONException e){
