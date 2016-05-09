@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 
@@ -56,6 +57,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     private WebRtcClient client;
     private String mSignalingServerAddress;
 
+    private ImageView mIndicator;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,6 +71,8 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
                         | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
         setContentView(R.layout.activity_main);
         mSignalingServerAddress = "ws://" + getResources().getString(R.string.server_host);
+        mIndicator = (ImageView)findViewById(R.id.imgDisplay);
+        mIndicator.setImageResource(R.drawable.stop_icn);
 
         vsv = (GLSurfaceView) findViewById(R.id.glview_call);
         vsv.setPreserveEGLContextOnPause(true);
@@ -84,11 +88,11 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         remoteRender = VideoRendererGui.create(
                 REMOTE_X, REMOTE_Y,
                 REMOTE_WIDTH, REMOTE_HEIGHT, scalingType, false);
-
+/*
         localRender = VideoRendererGui.create(
                 LOCAL_X_CONNECTING, LOCAL_Y_CONNECTING,
                 LOCAL_WIDTH_CONNECTING, LOCAL_HEIGHT_CONNECTING, scalingType, true);
-
+*/
         final Intent intent = getIntent();
         final String action = intent.getAction();
 
@@ -214,11 +218,21 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     @Override
     public void onLocalStream(MediaStream localStream) {
         Log.i(TAG, "onLocalStream");
+        // render to screen
+        /*
         localStream.videoTracks.get(0).addRenderer(new VideoRenderer(localRender));
         VideoRendererGui.update(localRender,
                 LOCAL_X_CONNECTING, LOCAL_Y_CONNECTING,
                 LOCAL_WIDTH_CONNECTING, LOCAL_HEIGHT_CONNECTING,
                 scalingType);
+        */
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mIndicator.setImageResource(R.drawable.play_icn);
+            }
+        });
+
     }
 
     @Override
@@ -238,11 +252,18 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     @Override
     public void onRemoveRemoteStream(int endPoint) {
         Log.i(TAG, "onRemoveRemoteStream");
+        /*
         VideoRendererGui.update(localRender,
                 LOCAL_X_CONNECTING, LOCAL_Y_CONNECTING,
                 LOCAL_WIDTH_CONNECTING, LOCAL_HEIGHT_CONNECTING,
                 scalingType);
-
+        */
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mIndicator.setImageResource(R.drawable.stop_icn);
+            }
+        });
     }
 
     @Override
