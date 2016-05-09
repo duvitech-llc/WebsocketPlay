@@ -572,9 +572,6 @@ public class WebRtcClient {
 
     public void onStop() {
         Log.i(TAG, "WebRtcClient:onStop");
-        if(ws != null){
-            ws.disconnect();
-        }
     }
 
     /**
@@ -593,8 +590,15 @@ public class WebRtcClient {
         for (Peer peer : peers.values()) {
             peer.pc.dispose();
         }
-        videoSource.dispose();
+        if(videoSource != null)
+            videoSource.stop();
+
         factory.dispose();
+
+        if(ws != null){
+            ws.disconnect();
+        }
+
     }
 
     private int findEndPoint() {

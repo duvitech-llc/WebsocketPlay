@@ -276,6 +276,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
                             case KeyEvent.KEYCODE_MENU:
                                 return true;
                             case KeyEvent.KEYCODE_BACK:
+                                dialog.dismiss();
                                 finish();
                                 return true;
                             default:
