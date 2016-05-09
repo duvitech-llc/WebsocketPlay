@@ -1,11 +1,14 @@
 package com.six15.myapplication;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Point;
 import android.opengl.GLSurfaceView;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -240,6 +243,56 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
                 LOCAL_WIDTH_CONNECTING, LOCAL_HEIGHT_CONNECTING,
                 scalingType);
 
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_VOLUME_UP:
+                return true;
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                return true;
+            case KeyEvent.KEYCODE_MENU:
+                return true;
+            default:
+                return super.onKeyDown(keyCode, event);
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        new AlertDialog.Builder(this)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setTitle("Closing Telestration")
+                .setMessage("Press Back to exit or select to cancel?")
+                .setOnKeyListener(new DialogInterface.OnKeyListener() {
+                    @Override
+                    public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
+                        switch (keyCode) {
+                            case KeyEvent.KEYCODE_VOLUME_UP:
+                                return false;
+                            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                                return false;
+                            case KeyEvent.KEYCODE_MENU:
+                                return true;
+                            case KeyEvent.KEYCODE_BACK:
+                                finish();
+                                return true;
+                            default:
+                                return false;
+                        }
+                    }
+                })
+                .setPositiveButton("Exit", new DialogInterface.OnClickListener()
+                {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        finish();
+                    }
+
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     public void sendMessage(View view) {
