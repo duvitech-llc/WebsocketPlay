@@ -89,11 +89,11 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         remoteRender = VideoRendererGui.create(
                 REMOTE_X, REMOTE_Y,
                 REMOTE_WIDTH, REMOTE_HEIGHT, scalingType, false);
-/*
+
         localRender = VideoRendererGui.create(
                 LOCAL_X_CONNECTING, LOCAL_Y_CONNECTING,
                 LOCAL_WIDTH_CONNECTING, LOCAL_HEIGHT_CONNECTING, scalingType, true);
-*/
+
         final Intent intent = getIntent();
         final String action = intent.getAction();
 
@@ -243,11 +243,13 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         VideoRendererGui.update(remoteRender,
                 REMOTE_X, REMOTE_Y,
                 REMOTE_WIDTH, REMOTE_HEIGHT, scalingType);
+
+        /*
         VideoRendererGui.update(localRender,
                 LOCAL_X_CONNECTED, LOCAL_Y_CONNECTED,
                 LOCAL_WIDTH_CONNECTED, LOCAL_HEIGHT_CONNECTED,
                 scalingType);
-
+        */
     }
 
     @Override
