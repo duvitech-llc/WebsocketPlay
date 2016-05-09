@@ -69,6 +69,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
                         | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
                         | WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
                         | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
+
         setContentView(R.layout.activity_main);
         mSignalingServerAddress = "ws://" + getResources().getString(R.string.server_host);
         mIndicator = (ImageView)findViewById(R.id.imgDisplay);
