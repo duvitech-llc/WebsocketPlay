@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
                         | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
 
         setContentView(R.layout.activity_main);
-        mSignalingServerAddress = "ws://" + getResources().getString(R.string.server_host);
+        mSignalingServerAddress = "ws://" + getResources().getString(R.string.local_host);
         mIndicator = (ImageView)findViewById(R.id.imgDisplay);
         mIndicator.setImageResource(R.drawable.stop_icn);
 
@@ -94,9 +94,11 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
             }
         });
 
+        vsv.setBackgroundColor(Color.BLACK);
+
         ov = (SurfaceView)findViewById(R.id.overlaySurface);
         ov.setZOrderMediaOverlay(true);
-        ov.setBackgroundColor(Color.BLACK);
+        ov.setBackgroundColor(Color.TRANSPARENT);
         SurfaceHolder sfhTrackHolder = ov.getHolder();
         sfhTrackHolder.setFormat(PixelFormat.TRANSPARENT);
 
@@ -310,7 +312,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
             @Override
             public void run() {
                 mIndicator.setImageResource(R.drawable.stop_icn);
-                ov.setBackgroundColor(Color.BLACK);
+               // ov.setBackgroundColor(Color.BLACK);
             }
         });
     }
