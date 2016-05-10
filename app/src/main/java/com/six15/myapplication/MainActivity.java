@@ -2,6 +2,10 @@ package com.six15.myapplication;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.opengl.GLSurfaceView;
 import android.support.v7.app.AlertDialog;
@@ -9,6 +13,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -56,6 +63,8 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     private VideoRenderer.Callbacks localRender;
     private WebRtcClient client;
     private String mSignalingServerAddress;
+    private SurfaceView ov;
+
 
     private ImageView mIndicator;
 
@@ -85,6 +94,32 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
             }
         });
 
+        ov = (SurfaceView)findViewById(R.id.overlaySurface);
+        ov.setZOrderMediaOverlay(true);
+        ov.setBackgroundColor(Color.BLACK);
+        SurfaceHolder sfhTrackHolder = ov.getHolder();
+        sfhTrackHolder.setFormat(PixelFormat.TRANSPARENT);
+
+        ov.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                SurfaceHolder holder = ov.getHolder();
+                Canvas c = holder.lockCanvas();
+                int x = c.getWidth();
+                int y = c.getHeight();
+                int radius;
+                radius = 100;
+                Paint paint = new Paint();
+                paint.setColor(Color.TRANSPARENT);
+                paint.setStyle(Paint.Style.FILL_AND_STROKE);
+                c.drawPaint(paint);
+                // Use Color.parseColor to define HTML colors
+                paint.setColor(Color.WHITE);
+                c.drawCircle(event.getRawX(), event.getRawY(), radius, paint);
+                holder.unlockCanvasAndPost(c);
+                return false;
+            }
+        });
         // local and remote render
         remoteRender = VideoRendererGui.create(
                 REMOTE_X, REMOTE_Y,
@@ -220,16 +255,18 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     public void onLocalStream(MediaStream localStream) {
         Log.i(TAG, "onLocalStream");
         // render to screen
-        /*
+
+/*
         localStream.videoTracks.get(0).addRenderer(new VideoRenderer(localRender));
         VideoRendererGui.update(localRender,
                 LOCAL_X_CONNECTING, LOCAL_Y_CONNECTING,
                 LOCAL_WIDTH_CONNECTING, LOCAL_HEIGHT_CONNECTING,
                 scalingType);
-        */
+*/
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                //ov.setBackgroundColor(Color.TRANSPARENT);
                 mIndicator.setImageResource(R.drawable.play_icn);
             }
         });
@@ -249,6 +286,14 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
                 LOCAL_X_CONNECTED, LOCAL_Y_CONNECTED,
                 LOCAL_WIDTH_CONNECTED, LOCAL_HEIGHT_CONNECTED,
                 scalingType);
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ov.setBackgroundColor(Color.TRANSPARENT);
+                mIndicator.setImageResource(R.drawable.play_icn);
+            }
+        });
         */
     }
 
@@ -265,6 +310,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
             @Override
             public void run() {
                 mIndicator.setImageResource(R.drawable.stop_icn);
+                ov.setBackgroundColor(Color.BLACK);
             }
         });
     }
