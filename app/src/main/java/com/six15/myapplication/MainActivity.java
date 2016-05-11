@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
+import android.graphics.PorterDuff;
 import android.opengl.GLSurfaceView;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -80,7 +81,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
                         | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
 
         setContentView(R.layout.activity_main);
-        mSignalingServerAddress = "ws://" + getResources().getString(R.string.local_host);
+        mSignalingServerAddress = "ws://" + getResources().getString(R.string.server_host);
         mIndicator = (ImageView)findViewById(R.id.imgDisplay);
         mIndicator.setImageResource(R.drawable.stop_icn);
 
@@ -115,8 +116,9 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
                 paint.setColor(Color.TRANSPARENT);
                 paint.setStyle(Paint.Style.FILL_AND_STROKE);
                 c.drawPaint(paint);
+
                 // Use Color.parseColor to define HTML colors
-                paint.setColor(Color.WHITE);
+                paint.setColor(Color.GREEN);
                 c.drawCircle(event.getRawX(), event.getRawY(), radius, paint);
                 holder.unlockCanvasAndPost(c);
                 return false;
@@ -224,6 +226,45 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         msg.setType("text/plain");
         startActivityForResult(Intent.createChooser(msg, "Call someone :"), VIDEO_CALL_SENT);
 */
+    }
+
+    @Override
+    public void drawLine(float x1, float y1, float x2, float y2){
+        Log.i(TAG, "Draw Line");
+        SurfaceHolder holder = ov.getHolder();
+        Canvas c = holder.lockCanvas();
+        int x = c.getWidth();
+        int y = c.getHeight();
+        int radius;
+        radius = 100;
+        Paint paint = new Paint();
+        paint.setColor(Color.TRANSPARENT);
+        paint.setStyle(Paint.Style.FILL_AND_STROKE);
+        c.drawPaint(paint);
+
+        // Use Color.parseColor to define HTML colors
+        paint.setColor(Color.GREEN);
+        c.drawLine(x1,y1,x2,y2,paint);
+        holder.unlockCanvasAndPost(c);
+    }
+
+    @Override
+    public void clearScreen(){
+        Log.i(TAG, "Clear Screen");
+
+        SurfaceHolder holder = ov.getHolder();
+        Canvas c = holder.lockCanvas();
+        int x = c.getWidth();
+        int y = c.getHeight();
+        int radius;
+        radius = 100;
+        Paint paint = new Paint();
+        paint.setColor(Color.TRANSPARENT);
+        paint.setStyle(Paint.Style.FILL_AND_STROKE);
+        c.drawPaint(paint);
+        c.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+
+        holder.unlockCanvasAndPost(c);
     }
 
     public void startCam() {

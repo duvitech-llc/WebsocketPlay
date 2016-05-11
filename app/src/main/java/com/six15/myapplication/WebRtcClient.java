@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.neovisionaries.ws.client.WebSocket;
 import com.neovisionaries.ws.client.WebSocketAdapter;
 import com.neovisionaries.ws.client.WebSocketException;
@@ -54,6 +55,7 @@ public class WebRtcClient {
     WebSocket ws = null;
 
     Gson gson = new Gson();
+    JsonParser parser = new JsonParser();
 
     /**
      * Implement this interface to be notified of events.
@@ -70,6 +72,10 @@ public class WebRtcClient {
         void onAddRemoteStream(MediaStream remoteStream, int endPoint);
 
         void onRemoveRemoteStream(int endPoint);
+
+        void clearScreen();
+
+        void drawLine(float x1, float y1, float x2, float y2);
     }
 
     private interface Command{
@@ -408,6 +414,33 @@ public class WebRtcClient {
                         case "stream":
                             Log.i("stream", "Stream Handler: " + text);
                             break;
+                        case "draw":
+                            Log.i("draw", "Draw Handler: " + text);
+                            msgType = msg.getType();
+                            if(msgType != null) {
+                                switch (msgType){
+                                    case "clear":
+                                        Log.d("clear", "Clear Display");
+                                        mListener.clearScreen();
+                                        break;
+                                    case "line":
+                                        Log.d("draw", "line: ");
+                                        if(msg.getData() != null)
+                                        {
+                                            JsonObject o = parser.parse(msg.getData().toString()).getAsJsonObject();
+                                            if(o.get("x1") != null) {
+                                                Log.d("line", "data: " +o.get("x1").getAsFloat());
+                                                mListener.drawLine(o.get("x1").getAsFloat(), o.get("y1").getAsFloat(),
+                                                        o.get("x2").getAsFloat(),o.get("y2").getAsFloat());
+                                            }
+                                        }
+                                        break;
+                                    default:
+                                        Log.d("draw", "Unkown Drawing Command");
+                                        break;
+                                }
+                            }
+                            break;
                         default:
                             Log.e("MESSAGE", "UNKNOWN MESSAGE type data received: " + text);
                     }
@@ -654,7 +687,8 @@ public class WebRtcClient {
     }
 
     private VideoCapturer getVideoCapturer() {
-        String nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfBackFacingDevice();
+        // String nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfBackFacingDevice();
+        String nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfFrontFacingDevice();
         return VideoCapturerAndroid.create(nameOfBackFacingDevice);
     }
 
