@@ -218,7 +218,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         String name = callId;
 
         //TODO: need to get friendly name of this device
-        client.start("Nexus_Device");
+        client.start("SIX15_WIFI");
 /*
         Intent msg = new Intent(Intent.ACTION_SEND);
         // TODO: probably need to make this a message
