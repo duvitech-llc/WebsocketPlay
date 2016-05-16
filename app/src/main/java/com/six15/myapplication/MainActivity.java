@@ -32,6 +32,7 @@ import org.webrtc.VideoRenderer;
 import org.webrtc.VideoRendererGui;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -68,6 +69,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
 
 
     private ImageView mIndicator;
+    private ArrayList<TextMessage> mMessageList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,9 +83,12 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
                         | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
 
         setContentView(R.layout.activity_main);
-        mSignalingServerAddress = "ws://" + getResources().getString(R.string.server_host);
+
+        mSignalingServerAddress = "ws://" + getResources().getString(R.string.local_host);
         mIndicator = (ImageView)findViewById(R.id.imgDisplay);
         mIndicator.setImageResource(R.drawable.stop_icn);
+
+        mMessageList = new ArrayList<>();
 
         vsv = (GLSurfaceView) findViewById(R.id.glview_call);
         vsv.setPreserveEGLContextOnPause(true);
@@ -218,7 +223,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         String name = callId;
 
         //TODO: need to get friendly name of this device
-        client.start("SIX15_WIFI");
+        client.start("WIFI_Glasses");
 /*
         Intent msg = new Intent(Intent.ACTION_SEND);
         // TODO: probably need to make this a message
@@ -286,6 +291,13 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     @Override
     public void onMessage(String from, String msg) {
         final String dispMessage = from + ": " + msg;
+        mMessageList.add(new TextMessage(from, msg));
+        if(mMessageList.size()>4){
+            // remove oldest
+            mMessageList.remove(0);
+        }
+
+        // show messages
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
