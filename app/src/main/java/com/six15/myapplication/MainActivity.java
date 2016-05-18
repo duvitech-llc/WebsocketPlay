@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
 
         setContentView(R.layout.activity_main);
 
-        mSignalingServerAddress = "ws://" + getResources().getString(R.string.local_host);
+        mSignalingServerAddress = "ws://" + getResources().getString(R.string.server_host);
         mIndicator = (ImageView)findViewById(R.id.imgDisplay);
         mIndicator.setImageResource(R.drawable.stop_icn);
 

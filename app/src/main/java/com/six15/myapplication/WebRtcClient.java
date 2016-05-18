@@ -687,8 +687,9 @@ public class WebRtcClient {
     }
 
     private VideoCapturer getVideoCapturer() {
-        //String nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfBackFacingDevice();
-        String nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfFrontFacingDevice();
+        String nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfBackFacingDevice();
+        /* front camera used for development */
+        //String nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfFrontFacingDevice();
         return VideoCapturerAndroid.create(nameOfBackFacingDevice);
     }
 
