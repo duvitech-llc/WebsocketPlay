@@ -15,6 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import android.graphics.Color;
 import android.opengl.EGLContext;
 import android.util.Log;
 import android.widget.Toast;
@@ -75,7 +76,9 @@ public class WebRtcClient {
 
         void clearScreen();
 
-        void drawLine(float x1, float y1, float x2, float y2);
+        void drawLine(float x1, float y1, float x2, float y2, int col);
+        void drawCircle(float originX, float originY, float radius, int col);
+        void drawSquare(float left, float top, float right, float bottom, int col);
     }
 
     private interface Command{
@@ -428,10 +431,37 @@ public class WebRtcClient {
                                         if(msg.getData() != null)
                                         {
                                             JsonObject o = parser.parse(msg.getData().toString()).getAsJsonObject();
-                                            if(o.get("x1") != null) {
-                                                Log.d("line", "data: " +o.get("x1").getAsFloat());
+                                            if(o.get("x1") != null && o.get("y1") != null && o.get("x2") != null && o.get("y2") != null) {
                                                 mListener.drawLine(o.get("x1").getAsFloat(), o.get("y1").getAsFloat(),
-                                                        o.get("x2").getAsFloat(),o.get("y2").getAsFloat());
+                                                        o.get("x2").getAsFloat(),o.get("y2").getAsFloat(), Color.GREEN);
+                                            }else{
+                                                Log.d("draw", "line: Data received error");
+                                            }
+                                        }
+                                        break;
+                                    case "circle":
+                                        Log.d("draw", "circle: ");
+                                        if(msg.getData() != null)
+                                        {
+                                            JsonObject o = parser.parse(msg.getData().toString()).getAsJsonObject();
+                                            if(o.get("x1") != null && o.get("y1") != null && o.get("r1") != null) {
+                                                mListener.drawCircle(o.get("x1").getAsFloat(), o.get("y1").getAsFloat(),
+                                                        o.get("r1").getAsFloat(), Color.YELLOW);
+                                            }else{
+                                                Log.d("draw", "circle: Data received error");
+                                            }
+                                        }
+                                        break;
+                                    case "square":
+                                        Log.d("draw", "square: ");
+                                        if(msg.getData() != null)
+                                        {
+                                            JsonObject o = parser.parse(msg.getData().toString()).getAsJsonObject();
+                                            if(o.get("x1") != null && o.get("y1") != null && o.get("x2") != null && o.get("y2") != null) {
+                                                mListener.drawSquare(o.get("x1").getAsFloat(), o.get("y1").getAsFloat(),
+                                                        o.get("x2").getAsFloat(), o.get("y2").getAsFloat(),Color.RED);
+                                            }else{
+                                                Log.d("draw", "square: Data received error");
                                             }
                                         }
                                         break;
@@ -687,9 +717,15 @@ public class WebRtcClient {
     }
 
     private VideoCapturer getVideoCapturer() {
-        String nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfBackFacingDevice();
+        String nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfFrontFacingDevice();
+        if(nameOfBackFacingDevice == null)
+            nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfBackFacingDevice();
+
+        if( nameOfBackFacingDevice == null){
+            Log.e(TAG, "error getting camera");
+        }
         /* front camera used for development */
-        //String nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfFrontFacingDevice();
+        //
         return VideoCapturerAndroid.create(nameOfBackFacingDevice);
     }
 

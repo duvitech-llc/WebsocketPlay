@@ -36,7 +36,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity  implements WebRtcClient.RtcListener{
+public class MainActivity extends AppCompatActivity  implements WebRtcClient.RtcListener, SurfaceHolder.Callback{
 
     public static final String sServerID = "AAAAAAAAAAAAAAAAAAAAAA";
     private static final String TAG = "MainActivity";
@@ -66,10 +66,14 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     private WebRtcClient client;
     private String mSignalingServerAddress;
     private SurfaceView ov;
+    private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
+    private SurfaceHolder sh;
 
     private ImageView mIndicator;
     private ArrayList<TextMessage> mMessageList;
+
+    private ArrayList<BaseObject> drawObjectList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,11 +88,12 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
 
         setContentView(R.layout.activity_main);
 
-        mSignalingServerAddress = "ws://" + getResources().getString(R.string.server_host);
+        mSignalingServerAddress = "ws://" + getResources().getString(R.string.local_host);
         mIndicator = (ImageView)findViewById(R.id.imgDisplay);
         mIndicator.setImageResource(R.drawable.stop_icn);
 
         mMessageList = new ArrayList<>();
+        drawObjectList = new ArrayList<>();
 
         vsv = (GLSurfaceView) findViewById(R.id.glview_call);
         vsv.setPreserveEGLContextOnPause(true);
@@ -102,33 +107,23 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
 
         vsv.setBackgroundColor(Color.BLACK);
 
-        ov = (SurfaceView)findViewById(R.id.overlaySurface);
+        ov = (SurfaceView) findViewById(R.id.overlaySurface);
         ov.setZOrderMediaOverlay(true);
         ov.setBackgroundColor(Color.TRANSPARENT);
-        SurfaceHolder sfhTrackHolder = ov.getHolder();
-        sfhTrackHolder.setFormat(PixelFormat.TRANSPARENT);
-
         ov.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                SurfaceHolder holder = ov.getHolder();
-                Canvas c = holder.lockCanvas();
-                int x = c.getWidth();
-                int y = c.getHeight();
-                int radius;
-                radius = 100;
-                Paint paint = new Paint();
-                paint.setColor(Color.TRANSPARENT);
-                paint.setStyle(Paint.Style.FILL_AND_STROKE);
-                c.drawPaint(paint);
-
-                // Use Color.parseColor to define HTML colors
-                paint.setColor(Color.GREEN);
-                c.drawCircle(event.getRawX(), event.getRawY(), radius, paint);
-                holder.unlockCanvasAndPost(c);
+                //drawSquare(event.getRawX(), event.getRawY(),event.getRawX()+40, event.getRawY()+40,Color.YELLOW);
+                drawCircle(event.getRawX(), event.getRawY(), 60, Color.BLUE);
                 return false;
             }
         });
+
+        sh = ov.getHolder();
+        sh.addCallback(this);
+        paint.setColor(Color.BLUE);
+        paint.setStyle(Paint.Style.STROKE);
+
         // local and remote render
         remoteRender = VideoRendererGui.create(
                 REMOTE_X, REMOTE_Y,
@@ -233,43 +228,50 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
 */
     }
 
-    @Override
-    public void drawLine(float x1, float y1, float x2, float y2){
-        Log.i(TAG, "Draw Line");
-        SurfaceHolder holder = ov.getHolder();
-        Canvas c = holder.lockCanvas();
-        int x = c.getWidth();
-        int y = c.getHeight();
-        int radius;
-        radius = 100;
-        Paint paint = new Paint();
-        paint.setColor(Color.TRANSPARENT);
-        paint.setStyle(Paint.Style.FILL_AND_STROKE);
-        c.drawPaint(paint);
+    private void updateDisplay(){
 
-        // Use Color.parseColor to define HTML colors
-        paint.setColor(Color.GREEN);
-        c.drawLine(x1,y1,x2,y2,paint);
-        holder.unlockCanvasAndPost(c);
+        Canvas canvas = sh.lockCanvas();
+        int x = canvas.getWidth();
+        int y = canvas.getHeight();
+        // clear screen and render objects
+        canvas.drawColor(Color.BLACK);
+        for(int c=0; c<drawObjectList.size(); c++){
+            drawObjectList.get(c).drawObject(canvas,paint);
+        }
+
+        sh.unlockCanvasAndPost(canvas);
+
+    }
+
+    @Override
+    public void drawCircle(float originX, float originY, float radius, int col){
+        Log.i(TAG, "Draw Circle");
+        drawObjectList.add(new CircleObject(originX, originY, radius, col));
+        updateDisplay();
+    }
+
+    @Override
+    public void drawSquare(float left, float top, float right, float bottom, int col){
+        Log.i(TAG, "Draw Square");
+
+        drawObjectList.add(new SquareObject(top, left, bottom, right, col));
+        updateDisplay();
+    }
+
+    @Override
+    public void drawLine(float x1, float y1, float x2, float y2, int col){
+        Log.i(TAG, "Draw Line");
+
+        drawObjectList.add(new LineObject(x1, y1, x2, y2, col));
+        updateDisplay();
+
     }
 
     @Override
     public void clearScreen(){
         Log.i(TAG, "Clear Screen");
-
-        SurfaceHolder holder = ov.getHolder();
-        Canvas c = holder.lockCanvas();
-        int x = c.getWidth();
-        int y = c.getHeight();
-        int radius;
-        radius = 100;
-        Paint paint = new Paint();
-        paint.setColor(Color.TRANSPARENT);
-        paint.setStyle(Paint.Style.FILL_AND_STROKE);
-        c.drawPaint(paint);
-        c.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-
-        holder.unlockCanvasAndPost(c);
+        drawObjectList.clear();
+        updateDisplay();
     }
 
     public void startCam() {
@@ -436,4 +438,24 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     }
 
 
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+
+        Log.i(TAG, "surfaceCreated");
+        Canvas canvas = sh.lockCanvas();
+        canvas.drawColor(Color.BLACK);
+        sh.unlockCanvasAndPost(canvas);
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+        Log.i(TAG, "surfaceChanged");
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+
+        Log.i(TAG, "surfaceDestroyed");
+    }
 }
