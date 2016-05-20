@@ -22,8 +22,20 @@ public class SquareObject extends BaseObject {
 
     @Override
     public void drawObject(Canvas canvas, Paint paint) {
+        float xTranslateFactor = 1.0f;
+        float yTranslateFactor = 1.0f;
+
         paint.setColor(this.getObjColor());
-        canvas.drawRect(left, top, right, bottom, paint);
+
+        if(this.hasCanvasDimensions() && this.hasSourceDimensions()){
+            // draw translated
+            xTranslateFactor = this.getCanvasWidth()/this.getSrcWidth();
+            yTranslateFactor = this.getCanvasHeight()/this.getSrcHeight();
+        }
+
+        canvas.drawRect(left * xTranslateFactor, top * yTranslateFactor,
+                right * xTranslateFactor, bottom * yTranslateFactor, paint);
+
     }
 
     public float getTop() {

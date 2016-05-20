@@ -44,7 +44,18 @@ public class CircleObject extends BaseObject {
 
     @Override
     public void drawObject(Canvas canvas, Paint paint) {
+        float xTranslateFactor = 1.0f;
+        float yTranslateFactor = 1.0f;
+        float rTranslateFactor = 1.0f;
+
         paint.setColor(this.getObjColor());
-        canvas.drawCircle(originX, originY, radius, paint);
+        if(this.hasCanvasDimensions() && this.hasSourceDimensions()){
+            xTranslateFactor = this.getCanvasWidth()/this.getSrcWidth();
+            yTranslateFactor = this.getCanvasHeight()/this.getSrcHeight();
+            rTranslateFactor = (xTranslateFactor + yTranslateFactor)/2;
+        }
+
+        canvas.drawCircle(originX * xTranslateFactor, originY * yTranslateFactor,
+                radius * rTranslateFactor, paint);
     }
 }

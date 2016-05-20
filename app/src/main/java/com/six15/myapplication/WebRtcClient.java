@@ -76,9 +76,9 @@ public class WebRtcClient {
 
         void clearScreen();
 
-        void drawLine(float x1, float y1, float x2, float y2, int col);
-        void drawCircle(float originX, float originY, float radius, int col);
-        void drawSquare(float left, float top, float right, float bottom, int col);
+        void drawLine(LineObject lo);
+        void drawCircle(CircleObject co);
+        void drawSquare(SquareObject so);
     }
 
     private interface Command{
@@ -432,8 +432,18 @@ public class WebRtcClient {
                                         {
                                             JsonObject o = parser.parse(msg.getData().toString()).getAsJsonObject();
                                             if(o.get("x1") != null && o.get("y1") != null && o.get("x2") != null && o.get("y2") != null) {
-                                                mListener.drawLine(o.get("x1").getAsFloat(), o.get("y1").getAsFloat(),
-                                                        o.get("x2").getAsFloat(),o.get("y2").getAsFloat(), Color.GREEN);
+
+                                                LineObject lo = new LineObject(o.get("x1").getAsFloat(), o.get("y1").getAsFloat(),
+                                                        o.get("x2").getAsFloat(), o.get("y2").getAsFloat(), Color.GREEN);
+
+                                                if(o.get("w") != null && o.get("h") != null){
+                                                    // we have width and height lets translate
+                                                    lo.setSrcWidth(o.get("w").getAsInt());
+                                                    lo.setSrcHeight(o.get("h").getAsInt());
+                                                }
+
+                                                mListener.drawLine(lo);
+
                                             }else{
                                                 Log.d("draw", "line: Data received error");
                                             }
@@ -445,8 +455,18 @@ public class WebRtcClient {
                                         {
                                             JsonObject o = parser.parse(msg.getData().toString()).getAsJsonObject();
                                             if(o.get("x1") != null && o.get("y1") != null && o.get("r1") != null) {
-                                                mListener.drawCircle(o.get("x1").getAsFloat(), o.get("y1").getAsFloat(),
+
+                                                CircleObject co = new CircleObject(o.get("x1").getAsFloat(), o.get("y1").getAsFloat(),
                                                         o.get("r1").getAsFloat(), Color.YELLOW);
+
+                                                if(o.get("w") != null && o.get("h") != null){
+                                                    // we have width and height lets translate
+                                                    co.setSrcWidth(o.get("w").getAsInt());
+                                                    co.setSrcHeight(o.get("h").getAsInt());
+                                                }
+
+                                                mListener.drawCircle(co);
+
                                             }else{
                                                 Log.d("draw", "circle: Data received error");
                                             }
@@ -458,8 +478,19 @@ public class WebRtcClient {
                                         {
                                             JsonObject o = parser.parse(msg.getData().toString()).getAsJsonObject();
                                             if(o.get("x1") != null && o.get("y1") != null && o.get("x2") != null && o.get("y2") != null) {
-                                                mListener.drawSquare(o.get("x1").getAsFloat(), o.get("y1").getAsFloat(),
-                                                        o.get("x2").getAsFloat(), o.get("y2").getAsFloat(),Color.RED);
+
+                                                SquareObject so = new SquareObject(o.get("y1").getAsFloat(), o.get("x1").getAsFloat(),
+                                                        o.get("y2").getAsFloat(), o.get("x2").getAsFloat(), Color.RED);
+
+
+                                                if(o.get("w") != null && o.get("h") != null){
+                                                    // we have width and height lets translate
+                                                    so.setSrcWidth(o.get("w").getAsInt());
+                                                    so.setSrcHeight(o.get("h").getAsInt());
+                                                }
+
+                                                mListener.drawSquare(so);
+
                                             }else{
                                                 Log.d("draw", "square: Data received error");
                                             }
@@ -720,8 +751,8 @@ public class WebRtcClient {
         String nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfBackFacingDevice();
 
         /*
-        if(nameOfBackFacingDevice == null)
-            nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfBackFacingDevice();
+        if(VideoCapturerAndroid.getNameOfFrontFacingDevice() != null)
+            nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfFrontFacingDevice();
         */
 
         if( nameOfBackFacingDevice == null){

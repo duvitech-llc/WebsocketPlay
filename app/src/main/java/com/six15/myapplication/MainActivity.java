@@ -113,15 +113,16 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         ov = (SurfaceView) findViewById(R.id.overlaySurface);
         ov.setZOrderMediaOverlay(true);
         ov.setBackgroundColor(Color.TRANSPARENT);
+        /*
         ov.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 //drawSquare(event.getRawX(), event.getRawY(),event.getRawX()+40, event.getRawY()+40,Color.YELLOW);
-                drawCircle(event.getRawX(), event.getRawY(), 60, Color.BLUE);
+                //drawCircle(event.getRawX(), event.getRawY(), 60, Color.BLUE);
                 return false;
             }
         });
-
+        */
         sh = ov.getHolder();
         sh.addCallback(this);
         paint.setColor(Color.BLUE);
@@ -256,8 +257,14 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         int x = canvas.getWidth();
         int y = canvas.getHeight();
         // clear screen and render objects
+
         canvas.drawColor(Color.BLACK);
         for(int c=0; c<drawObjectList.size(); c++){
+            if(drawObjectList.get(c).hasSourceDimensions()){
+                // set width and height of canvas
+                drawObjectList.get(c).setCanvasWidth(x);
+                drawObjectList.get(c).setCanvasHeight(y);
+            }
             drawObjectList.get(c).drawObject(canvas,paint);
         }
 
@@ -266,25 +273,25 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     }
 
     @Override
-    public void drawCircle(float originX, float originY, float radius, int col){
+    public void drawCircle(CircleObject co){
         Log.i(TAG, "Draw Circle");
-        drawObjectList.add(new CircleObject(originX, originY, radius, col));
+        drawObjectList.add(co);
         updateDisplay();
     }
 
     @Override
-    public void drawSquare(float left, float top, float right, float bottom, int col){
+    public void drawSquare(SquareObject so){
         Log.i(TAG, "Draw Square");
 
-        drawObjectList.add(new SquareObject(top, left, bottom, right, col));
+        drawObjectList.add(so);
         updateDisplay();
     }
 
     @Override
-    public void drawLine(float x1, float y1, float x2, float y2, int col){
+    public void drawLine(LineObject lo){
         Log.i(TAG, "Draw Line");
 
-        drawObjectList.add(new LineObject(x1, y1, x2, y2, col));
+        drawObjectList.add(lo);
         updateDisplay();
 
     }

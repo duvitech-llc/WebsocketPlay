@@ -23,8 +23,20 @@ public class LineObject extends BaseObject{
 
     @Override
     public void drawObject(Canvas canvas, Paint paint) {
+        float xTranslateFactor = 1.0f;
+        float yTranslateFactor = 1.0f;
+
         paint.setColor(this.getObjColor());
-        canvas.drawLine(x1,y1,x2,y2,paint);
+
+        if(this.hasCanvasDimensions() && this.hasSourceDimensions()){
+            // draw translated
+            xTranslateFactor = this.getCanvasWidth()/this.getSrcWidth();
+            yTranslateFactor = this.getCanvasHeight()/this.getSrcHeight();
+        }
+
+        canvas.drawLine(x1 * xTranslateFactor, y1 * yTranslateFactor,
+                x2 * xTranslateFactor, y2 * yTranslateFactor, paint);
+
     }
 
     public float getX1() {
