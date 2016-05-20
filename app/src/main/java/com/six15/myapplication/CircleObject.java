@@ -50,9 +50,9 @@ public class CircleObject extends BaseObject {
 
         paint.setColor(this.getObjColor());
         if(this.hasCanvasDimensions() && this.hasSourceDimensions()){
-            xTranslateFactor = this.getCanvasWidth()/this.getSrcWidth();
-            yTranslateFactor = this.getCanvasHeight()/this.getSrcHeight();
-            rTranslateFactor = (xTranslateFactor + yTranslateFactor)/2;
+            xTranslateFactor = (float) ((float) this.getCanvasWidth()/(float) this.getSrcWidth());
+            yTranslateFactor = (float) ((float) this.getCanvasHeight()/(float) this.getSrcHeight());
+            rTranslateFactor = (float)((xTranslateFactor + yTranslateFactor)/2);
         }
 
         canvas.drawCircle(originX * xTranslateFactor, originY * yTranslateFactor,

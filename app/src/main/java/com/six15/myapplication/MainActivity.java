@@ -262,6 +262,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         for(int c=0; c<drawObjectList.size(); c++){
             if(drawObjectList.get(c).hasSourceDimensions()){
                 // set width and height of canvas
+                Log.d("updateDisplay","Canvas Width: " + x + " Height: " + y + "" );
                 drawObjectList.get(c).setCanvasWidth(x);
                 drawObjectList.get(c).setCanvasHeight(y);
             }

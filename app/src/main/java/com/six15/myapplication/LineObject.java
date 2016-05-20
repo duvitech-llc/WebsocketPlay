@@ -2,6 +2,7 @@ package com.six15.myapplication;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.util.Log;
 
 /**
  * Created by George on 5/19/2016.
@@ -30,8 +31,13 @@ public class LineObject extends BaseObject{
 
         if(this.hasCanvasDimensions() && this.hasSourceDimensions()){
             // draw translated
-            xTranslateFactor = this.getCanvasWidth()/this.getSrcWidth();
-            yTranslateFactor = this.getCanvasHeight()/this.getSrcHeight();
+            xTranslateFactor = (float) ((float) this.getCanvasWidth()/(float) this.getSrcWidth());
+            yTranslateFactor = (float) ((float) this.getCanvasHeight()/(float) this.getSrcHeight());
+/*
+            Log.d("DrawLine","Source Width: " + this.getSrcWidth() + " Height: " + this.getSrcHeight() + "" );
+            Log.d("DrawLine","Canvas Width: " + this.getCanvasWidth() + " Height: " + this.getCanvasHeight() + "" );
+            Log.d("DrawLine","Translate x: " +  xTranslateFactor + " y: " + yTranslateFactor + "" );
+*/
         }
 
         canvas.drawLine(x1 * xTranslateFactor, y1 * yTranslateFactor,

@@ -29,8 +29,8 @@ public class SquareObject extends BaseObject {
 
         if(this.hasCanvasDimensions() && this.hasSourceDimensions()){
             // draw translated
-            xTranslateFactor = this.getCanvasWidth()/this.getSrcWidth();
-            yTranslateFactor = this.getCanvasHeight()/this.getSrcHeight();
+            xTranslateFactor = (float) ((float) this.getCanvasWidth()/(float) this.getSrcWidth());
+            yTranslateFactor = (float) ((float) this.getCanvasHeight()/(float) this.getSrcHeight());
         }
 
         canvas.drawRect(left * xTranslateFactor, top * yTranslateFactor,
