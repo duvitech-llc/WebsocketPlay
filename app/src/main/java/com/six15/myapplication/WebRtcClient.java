@@ -717,9 +717,12 @@ public class WebRtcClient {
     }
 
     private VideoCapturer getVideoCapturer() {
-        String nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfFrontFacingDevice();
+        String nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfBackFacingDevice();
+
+        /*
         if(nameOfBackFacingDevice == null)
             nameOfBackFacingDevice = VideoCapturerAndroid.getNameOfBackFacingDevice();
+        */
 
         if( nameOfBackFacingDevice == null){
             Log.e(TAG, "error getting camera");

@@ -1,5 +1,6 @@
 package com.six15.myapplication;
 
+import android.bluetooth.BluetoothAdapter;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Canvas;
@@ -9,6 +10,7 @@ import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.opengl.GLSurfaceView;
+import android.os.Build;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -35,6 +37,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.StringTokenizer;
 
 public class MainActivity extends AppCompatActivity  implements WebRtcClient.RtcListener, SurfaceHolder.Callback{
 
@@ -88,7 +91,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
 
         setContentView(R.layout.activity_main);
 
-        mSignalingServerAddress = "ws://" + getResources().getString(R.string.local_host);
+        mSignalingServerAddress = "ws://" + getResources().getString(R.string.server_host);
         mIndicator = (ImageView)findViewById(R.id.imgDisplay);
         mIndicator.setImageResource(R.drawable.stop_icn);
 
@@ -211,6 +214,12 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         startCam();
     }
 
+    private String getPhoneName() {
+        BluetoothAdapter myDevice = BluetoothAdapter.getDefaultAdapter();
+        String deviceName = myDevice.getName();
+        return deviceName;
+    }
+
     public void call(String callId) {
         Log.i(TAG, "call Caller: " + callId);
         // no need to do this unless we are placing a call
@@ -218,7 +227,20 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         String name = callId;
 
         //TODO: need to get friendly name of this device
-        client.start("WIFI_Glasses");
+        String friendlyName = null;
+        try {
+            friendlyName = getPhoneName();
+        }catch (Exception ex){
+            Log.e(TAG, ex.getMessage());
+        }
+
+        if (friendlyName == null || friendlyName.isEmpty())
+            friendlyName = Build.SERIAL;
+
+        if (friendlyName == null || friendlyName.isEmpty())
+            friendlyName = "WIFI_Device";
+
+        client.start(friendlyName);
 /*
         Intent msg = new Intent(Intent.ACTION_SEND);
         // TODO: probably need to make this a message
