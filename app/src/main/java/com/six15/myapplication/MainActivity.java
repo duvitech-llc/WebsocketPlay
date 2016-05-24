@@ -1,8 +1,10 @@
 package com.six15.myapplication;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -11,6 +13,8 @@ import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -78,6 +82,12 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
 
     private ArrayList<BaseObject> drawObjectList;
 
+    /**
+     * Id to identify a camera permission request.
+     */
+    private static final int REQUEST_CAMERA = 0;
+    private static final int REQUEST_AUDIO = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -90,6 +100,29 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
                         | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
 
         setContentView(R.layout.activity_main);
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            requestCameraPermission();
+
+        }else{
+
+            Log.i(TAG,
+                    "CAMERA permission has already been granted.");
+        }
+
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            requestAudioPermission();
+
+        }else{
+
+            Log.i(TAG,
+                    "RECORD_AUDIO permission has already been granted.");
+        }
 
         mSignalingServerAddress = "ws://" + getResources().getString(R.string.server_host);
         mIndicator = (ImageView)findViewById(R.id.imgDisplay);
@@ -153,6 +186,26 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
                 true, false, displaySize.x, displaySize.y, 30, 1, VIDEO_CODEC_VP9, true, 1, AUDIO_CODEC_OPUS, true);
 
        client = new WebRtcClient(this, mSignalingServerAddress, params, VideoRendererGui.getEGLContext());
+    }
+
+    private void requestCameraPermission() {
+        Log.i(TAG, "CAMERA permission has NOT been granted. Requesting permission.");
+
+
+        // Camera permission has not been granted yet. Request it directly.
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},
+                REQUEST_CAMERA);
+
+    }
+
+    private void requestAudioPermission() {
+        Log.i(TAG, "RECORD_AUDIO permission has NOT been granted. Requesting permission.");
+
+
+        // Camera permission has not been granted yet. Request it directly.
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO},
+                REQUEST_AUDIO);
+
     }
 
     @Override
