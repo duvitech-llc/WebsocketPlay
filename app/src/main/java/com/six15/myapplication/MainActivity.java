@@ -160,6 +160,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         sh.addCallback(this);
         paint.setColor(Color.BLUE);
         paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(8);
 
         // local and remote render
         remoteRender = VideoRendererGui.create(

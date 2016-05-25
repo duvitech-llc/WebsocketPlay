@@ -457,7 +457,7 @@ public class WebRtcClient {
                                             if(o.get("x1") != null && o.get("y1") != null && o.get("r1") != null) {
 
                                                 CircleObject co = new CircleObject(o.get("x1").getAsFloat(), o.get("y1").getAsFloat(),
-                                                        o.get("r1").getAsFloat(), Color.YELLOW);
+                                                        o.get("r1").getAsFloat(), Color.BLUE);
 
                                                 if(o.get("w") != null && o.get("h") != null){
                                                     // we have width and height lets translate
