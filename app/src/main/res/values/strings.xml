@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Telestrate</string>
     <string name="server_host">six15wifiportal.azurewebsites.net/ws</string>
-    <string name="local_host">192.168.1.124/ws</string>
+    <string name="local_host">192.168.1.106/ws</string>
     <string name="duvitech_office">192.168.1.68/ws</string>
     <string name="send">Send</string>
     <string name="message">Message</string>

@@ -33,9 +33,11 @@ public class SquareObject extends BaseObject {
             yTranslateFactor = (float) ((float) this.getCanvasHeight()/(float) this.getSrcHeight());
         }
 
+        paint.setStyle(Paint.Style.FILL_AND_STROKE);
         canvas.drawRect(left * xTranslateFactor, top * yTranslateFactor,
                 right * xTranslateFactor, bottom * yTranslateFactor, paint);
 
+        paint.setStyle(Paint.Style.STROKE);
     }
 
     public float getTop() {

@@ -457,7 +457,7 @@ public class WebRtcClient {
                                             if(o.get("x1") != null && o.get("y1") != null && o.get("r1") != null) {
 
                                                 CircleObject co = new CircleObject(o.get("x1").getAsFloat(), o.get("y1").getAsFloat(),
-                                                        o.get("r1").getAsFloat(), Color.BLUE);
+                                                        o.get("r1").getAsFloat(), Color.WHITE);
 
                                                 if(o.get("w") != null && o.get("h") != null){
                                                     // we have width and height lets translate
@@ -480,7 +480,7 @@ public class WebRtcClient {
                                             if(o.get("x1") != null && o.get("y1") != null && o.get("x2") != null && o.get("y2") != null) {
 
                                                 SquareObject so = new SquareObject(o.get("y1").getAsFloat(), o.get("x1").getAsFloat(),
-                                                        o.get("y2").getAsFloat(), o.get("x2").getAsFloat(), Color.RED);
+                                                        o.get("y2").getAsFloat(), o.get("x2").getAsFloat(), Color.argb(125, 255, 0, 0));
 
 
                                                 if(o.get("w") != null && o.get("h") != null){
