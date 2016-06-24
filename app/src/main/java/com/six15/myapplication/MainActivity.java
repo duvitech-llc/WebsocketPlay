@@ -184,7 +184,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         Point displaySize = new Point();
         getWindowManager().getDefaultDisplay().getSize(displaySize);
         PeerConnectionParameters params = new PeerConnectionParameters(
-                true, false, displaySize.x, displaySize.y, 30, 1, VIDEO_CODEC_VP9, true, 1, AUDIO_CODEC_OPUS, true);
+                true, false, 320, 240, 10, 1, VIDEO_CODEC_VP9, true, 1, AUDIO_CODEC_OPUS, true);
 
        client = new WebRtcClient(this, mSignalingServerAddress, params, VideoRendererGui.getEGLContext());
     }
