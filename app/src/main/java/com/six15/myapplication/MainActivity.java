@@ -50,6 +50,8 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     private String callerId = null;
     private final static int VIDEO_CALL_SENT = 666;
     private static final String VIDEO_CODEC_VP9 = "VP9";
+    private static final String VIDEO_CODEC_VP8 = "VP8";
+    private static final String VIDEO_CODEC_H264 = "H264";
     private static final String AUDIO_CODEC_OPUS = "opus";
     // Local preview screen position before call is connected.
     private static final int LOCAL_X_CONNECTING = 0;
@@ -184,7 +186,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         Point displaySize = new Point();
         getWindowManager().getDefaultDisplay().getSize(displaySize);
         PeerConnectionParameters params = new PeerConnectionParameters(
-                true, false, 320, 240, 10, 1, VIDEO_CODEC_VP9, true, 1, AUDIO_CODEC_OPUS, true);
+                true, false, 320, 240, 10, 1, VIDEO_CODEC_H264, true, 1, AUDIO_CODEC_OPUS, true);
 
        client = new WebRtcClient(this, mSignalingServerAddress, params, VideoRendererGui.getEGLContext());
     }
