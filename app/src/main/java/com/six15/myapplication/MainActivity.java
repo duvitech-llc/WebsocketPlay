@@ -32,8 +32,11 @@ import android.widget.LinearLayout;
 import android.widget.Toast;
 
 
+import com.intel.webrtc.base.ActionCallback;
 import com.intel.webrtc.base.ClientContext;
+import com.intel.webrtc.base.ConnectionStats;
 import com.intel.webrtc.base.LocalCameraStream;
+import com.intel.webrtc.base.LocalCameraStreamParameters;
 import com.intel.webrtc.base.MediaCodec;
 import com.intel.webrtc.base.RemoteStream;
 import com.intel.webrtc.base.Stream;
@@ -41,7 +44,10 @@ import com.intel.webrtc.base.WoogeenException;
 import com.intel.webrtc.base.WoogeenSurfaceRenderer;
 import com.intel.webrtc.p2p.PeerClient;
 import com.intel.webrtc.p2p.PeerClientConfiguration;
+import com.intel.webrtc.p2p.PublishOptions;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.webrtc.EglBase;
 import org.webrtc.PeerConnection;
 import org.webrtc.RendererCommon;
@@ -54,6 +60,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Callback{
 
@@ -84,6 +91,8 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
     private SurfaceView ov;
     private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
+    private String publishPeerId = "";
+
     private WoogeenSurfaceRenderer localSurfaceRenderer;
     private WoogeenSurfaceRenderer remoteSurfaceRenderer;
     private Stream.VideoRendererInterface localStreamRenderer;
@@ -113,6 +122,9 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
     private final static int UNPUBLISH = 6;
     private final static int SWITCH_CAMERA = 7;
     private final static int SEND_DATA = 8;
+
+    //default camera is the front camera
+    private boolean mirror = true;
 
     private Timer statsTimer;
 
@@ -224,6 +236,8 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
         } catch (WoogeenException e) {
             e.printStackTrace();
         }
+
+        // log into server
     }
 
     private void initVideoStreamsViews() throws WoogeenException{
@@ -460,50 +474,247 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
     }
 
     PeerClient.PeerClientObserver observer = new PeerClient.PeerClientObserver() {
-
         @Override
         public void onServerDisconnected() {
-
+            remoteStreamRenderer.cleanFrame();
+            localStreamRenderer.cleanFrame();
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(MainActivity.this, "onServerDisconnected",
+                            Toast.LENGTH_SHORT).show();
+                    /*
+                    loginBtn.setEnabled(true);
+                    logoutBtn.setEnabled(false);
+                    startVideoBtn.setEnabled(false);
+                    stopVideoBtn.setEnabled(false);
+                    switchCameraBtn.setEnabled(false);
+                    connectBtn.setEnabled(false);
+                    disconnectBtn.setEnabled(false);
+                    sendMsgBtn.setEnabled(false);
+                    selfIdEdTx.setEnabled(true);
+                    serverEdTx.setEnabled(true);
+                    */
+                }
+            });
         }
 
         @Override
-        public void onInvited(String s) {
+        public void onInvited(final String peerId) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    destId = peerId;
+                    final android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(MainActivity.this);
+                    builder.setTitle("Video Invitation");
+                    builder.setMessage("Do you want to connect with " + peerId + "?");
+                    builder.setPositiveButton("OK",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog,
+                                                    int which) {
+                                    peerClient.accept(destId,
+                                            new ActionCallback<Void>() {
 
+                                                @Override
+                                                public void onSuccess(Void result) {
+                                                    runOnUiThread(new Runnable() {
+                                                        @Override
+                                                        public void run() {
+                                                            /*
+                                                            sendMsgBtn.setEnabled(true);
+                                                            startVideoBtn.setEnabled(true);
+                                                            destIdEdTx.setText(destId);
+                                                            disconnectBtn.setEnabled(true);
+                                                            */
+                                                        }});
+                                                }
+
+                                                @Override
+                                                public void onFailure(
+                                                        WoogeenException e) {
+                                                    Log.d(TAG, e.getMessage());
+                                                }
+
+                                            });
+                                }
+                            });
+                    builder.setNeutralButton("Cancel",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog,
+                                                    int which) {
+                                    peerClient.deny(destId,
+                                            new ActionCallback<Void>() {
+
+                                                @Override
+                                                public void onSuccess(
+                                                        Void result) {
+                                                    Log.d(TAG,
+                                                            "Denied invitation from "
+                                                                    + destId);
+                                                }
+
+                                                @Override
+                                                public void onFailure(
+                                                        WoogeenException e) {
+                                                    Log.d(TAG, e.getMessage());
+                                                }
+
+                                            });
+                                }
+                            });
+                    builder.create().show();
+                }
+            });
         }
 
         @Override
-        public void onDenied(String s) {
-
+        public void onDenied(final String peerId) {
+            Log.d(TAG, "onDenied:" + peerId);
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(MainActivity.this,
+                            "Receive Deny from " + peerId, Toast.LENGTH_SHORT)
+                            .show();
+                }
+            });
         }
 
         @Override
-        public void onAccepted(String s) {
-
+        public void onAccepted(final String peerId) {
+            Log.d(TAG, "onAccepted:" + peerId);
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(MainActivity.this,
+                            "Receive Accept from " + peerId, Toast.LENGTH_SHORT)
+                            .show();
+                    /*
+                    sendMsgBtn.setEnabled(true);
+                    startVideoBtn.setEnabled(true);
+                    disconnectBtn.setEnabled(true);
+                    */
+                }
+            });
         }
 
         @Override
-        public void onChatStopped(String s) {
-
+        public void onChatStopped(final String peerId) {
+            Log.d(TAG, "onChatStop:" + peerId);
+            runOnUiThread(new Runnable() {
+                public void run(){
+                    /*
+                    stopVideoBtn.setEnabled(false);
+                    startVideoBtn.setEnabled(false);
+                    */
+                    Toast.makeText(MainActivity.this, "onChatStop:" + peerId,
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
+            remoteStreamRenderer.cleanFrame();
+            localStreamRenderer.cleanFrame();
+            if(statsTimer != null){
+                statsTimer.cancel();
+            }
         }
 
         @Override
-        public void onChatStarted(String s) {
+        public void onChatStarted(final String peerId) {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(MainActivity.this,
+                            "onChatStart:" + peerId, Toast.LENGTH_SHORT).show();
+                   /*
+                    startVideoBtn.setEnabled(true);
+                    sendMsgBtn.setEnabled(true);
+                    */
+                }
+            });
 
+            //This is a sample usage of get the statistic data for the peerconnection including all the streams
+            //ever been published. If you would like to get the data for a specific stream,  please refer to the
+            //sample code in the onSuccess callback of publish.
+            //ATTENTION: DO NOT use getConnectionStats(), getConnectionStats(localstream)and getAudioLevels() at the same time.
+            /*statsTimer = new Timer();
+            statsTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    peerClient.getConnectionStats(destId, new ActionCallback<ConnectionStats>() {
+                        @Override
+                        public void onSuccess(ConnectionStats result) {
+                            Log.d(TAG, "connection stats: " + result.timeStamp
+                                      +" available transmit bitrate: " + result.videoBandwidthStats.transmitBitrate
+                                      +" retransmit bitrate: " + result.videoBandwidthStats.reTransmitBitrate);
+                        }
+
+                        @Override
+                        public void onFailure(WoogeenException e) {
+                        }
+                    });
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e1) {
+                        e1.printStackTrace();
+                    }
+                    peerClient.getAudioLevels(destId, new ActionCallback<AudioLevels>(){
+
+                        @Override
+                        public void onSuccess(AudioLevels audioLevels) {
+                            Log.d(TAG, "audio input levels: ");
+                            for(AudioLevels.AudioLevel al : audioLevels.getInputLevelList())
+                                Log.d(TAG, al.ssrcId + ":" + al.level);
+                            Log.d(TAG, "audio output levels: ");
+                            for(AudioLevels.AudioLevel al : audioLevels.getOutputLevelList())
+                                Log.d(TAG, al.ssrcId + ":" + al.level);
+                        }
+
+                        @Override
+                        public void onFailure(WoogeenException e) {
+                            Log.d(TAG, "Failed to get audio level:" + e.getMessage());
+                        }
+
+                    });
+                }
+            }, 0, 10000);*/
         }
 
         @Override
-        public void onDataReceived(String s, String s1) {
-
+        public void onDataReceived(final String peerId, final String msg) {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(MainActivity.this,"" + peerId + ":" + msg, Toast.LENGTH_LONG).show();
+                }
+            });
         }
 
         @Override
-        public void onStreamAdded(RemoteStream remoteStream) {
+        public void onStreamAdded(final RemoteStream stream) {
+            Log.d(TAG, "onStreamAdded : from " + stream.getRemoteUserId());
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        stream.attach(remoteStreamRenderer);
+                        Toast.makeText(MainActivity.this, "Added remote stream "
+                                        + "from "+stream.getRemoteUserId(),
+                                Toast.LENGTH_LONG).show();
 
+                    } catch (WoogeenException e) {
+                        Log.d(TAG, e.getMessage());
+                    }
+                }
+            });
         }
 
         @Override
-        public void onStreamRemoved(RemoteStream remoteStream) {
-
+        public void onStreamRemoved(final RemoteStream stream) {
+            Log.d(TAG, "onStreamRemoved");
+            remoteStreamRenderer.cleanFrame();
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(MainActivity.this, "onStreamRemoved",
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
         }
     };
 
@@ -511,6 +722,289 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
 
         public PeerHandler(Looper looper) {
             super(looper);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case LOGIN:
+                    selfId = getPhoneName();
+                    server = getResources().getString(R.string.server_host);
+                    JSONObject loginObject = new JSONObject();
+                    try {
+                        loginObject.put("host", server);
+                        loginObject.put("token", selfId);
+                    } catch (JSONException e1) {
+                        e1.printStackTrace();
+                    }
+                    peerClient.connect(loginObject.toString(),
+                            new ActionCallback<String>() {
+
+                                @Override
+                                public void onSuccess(String result) {
+                                    runOnUiThread(new Runnable() {
+                                        public void run() {
+                                            Toast.makeText(MainActivity.this,
+                                                    "onServerConnected",
+                                                    Toast.LENGTH_SHORT).show();
+                                            /*
+                                            serverEdTx.setEnabled(false);
+                                            loginBtn.setEnabled(false);
+                                            selfIdEdTx.setEnabled(false);
+                                            logoutBtn.setEnabled(true);
+                                            connectBtn.setEnabled(true);
+                                            */
+                                        }
+                                    });
+                                }
+
+                                @Override
+                                public void onFailure(WoogeenException e) {
+                                    Log.d(TAG, "Failed to connect server:" + e.getMessage());
+                                    runOnUiThread(new Runnable() {
+                                        public void run() {
+                                            Toast.makeText(MainActivity.this,
+                                                    "onServerConnectFailed",
+                                                    Toast.LENGTH_SHORT).show();
+                                            /*
+                                            loginBtn.setEnabled(true);
+                                            logoutBtn.setEnabled(false);
+                                            startVideoBtn.setEnabled(false);
+                                            stopVideoBtn.setEnabled(false);
+                                            switchCameraBtn.setEnabled(false);
+                                            connectBtn.setEnabled(false);
+                                            disconnectBtn.setEnabled(false);
+                                            sendMsgBtn.setEnabled(false);
+                                            selfIdEdTx.setEnabled(true);
+                                            serverEdTx.setEnabled(true);
+                                            */
+                                        }
+                                    });
+                                }
+                            });
+                    break;
+                case LOGOUT:
+                    peerClient.disconnect(new ActionCallback<Void>() {
+
+                        @Override
+                        public void onSuccess(Void result) {
+                            if (localStream != null) {
+                                localStream.close();
+                                localStream = null;
+                                localStreamRenderer.cleanFrame();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(WoogeenException e) {
+                            Log.d(TAG, e.getMessage());
+                        }
+                    });
+                    break;
+                case INVITE:
+                    destId = "TODO:ID_OF_TARGET";
+                    peerClient.invite(destId, new ActionCallback<Void>() {
+
+                        @Override
+                        public void onSuccess(Void result) {
+                        }
+
+                        @Override
+                        public void onFailure(WoogeenException e) {
+                            Log.d(TAG, e.getMessage());
+                        }
+
+                    });
+                    break;
+                case STOP:
+                    destId = "TODO:ID_OF_TARGET";
+                    peerClient.stop(destId, new ActionCallback<Void>() {
+
+                        @Override
+                        public void onSuccess(Void result) {
+                            if (localStream != null) {
+                                localStream.close();
+                                localStream = null;
+                                localStreamRenderer.cleanFrame();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(WoogeenException e) {
+                            Log.d(TAG, e.getMessage());
+                        }
+
+                    });
+                    break;
+                case PUBLISH:
+                    if (localStream == null) {
+                        LocalCameraStreamParameters msp;
+                        try {
+                            msp = new LocalCameraStreamParameters(
+                                    true, true);
+                            msp.setResolution(320, 240);
+                            localStream = new LocalCameraStream(msp);
+                            localStream.attach(localStreamRenderer);
+                        } catch (WoogeenException e1) {
+                            e1.printStackTrace();
+                            if (localStream != null) {
+                                localStream.close();
+                                localStream = null;
+                                localStreamRenderer.cleanFrame();
+                            }
+                        }
+                    }
+                    destId = "TODO:ID_OF_TARGET";
+                    PublishOptions option = new PublishOptions();
+                    option.setMaximumVideoBandwidth(200);
+                    option.setMaximumAudioBandwidth(30);
+                    peerClient.publish(localStream, destId, option,
+                            new ActionCallback<Void>() {
+
+                                @Override
+                                public void onSuccess(Void result) {
+                                    publishPeerId = destId;
+                                    runOnUiThread(new Runnable() {
+                                        public void run() {
+                                            /*
+                                            startVideoBtn.setEnabled(false);
+                                            stopVideoBtn.setEnabled(true);
+                                            switchCameraBtn.setEnabled(true);
+                                            */
+                                        }
+                                    });
+
+                                    //This is a sample usage of get the statistic data for a specific stream, in this sample, localStream
+                                    //that has just been published. If you would like to get all the data for the peerconnection, including
+                                    //the data for the streams had been published before, please refer to the sample code in onChatStarted.
+                                    //ATTENTION: DO NOT use getConnectionStats(), getConnectionStats(localstream)and getAudioLevels() at the same time.
+                                    statsTimer = new Timer();
+                                    statsTimer.schedule(new TimerTask() {
+                                        @Override
+                                        public void run() {
+                                            peerClient.getConnectionStats(destId, localStream, new ActionCallback<ConnectionStats>() {
+                                                @Override
+                                                public void onSuccess(ConnectionStats result) {
+                                                    Log.d(TAG, "result:" + result.mediaTracksStatsList.size());
+                                                    Log.d(TAG, "connection stats: " + result.timeStamp
+                                                            +" available transmit bitrate: " + result.videoBandwidthStats.transmitBitrate
+                                                            +" retransmit bitrate: " + result.videoBandwidthStats.reTransmitBitrate);
+                                                }
+
+                                                @Override
+                                                public void onFailure(WoogeenException e) {
+                                                }
+                                            });
+
+                                        }
+                                    }, 0, 10000);
+                                }
+
+                                @Override
+                                public void onFailure(WoogeenException e) {
+                                    Log.d(TAG, e.getMessage());
+                                    if (localStream != null) {
+                                        localStream.close();
+                                        localStream = null;
+                                        localStreamRenderer.cleanFrame();
+                                    }
+                                }
+                            });
+                    break;
+                case UNPUBLISH:
+                    if (localStream != null) {
+                        peerClient.unpublish(localStream, publishPeerId,
+                                new ActionCallback<Void>() {
+
+                                    @Override
+                                    public void onSuccess(Void result) {
+                                        localStream.close();
+                                        localStream = null;
+                                        localStreamRenderer.cleanFrame();
+                                        runOnUiThread(new Runnable() {
+                                            public void run() {
+                                                /*
+                                                stopVideoBtn.setEnabled(false);
+                                                startVideoBtn.setEnabled(true);
+                                                switchCameraBtn.setEnabled(false);
+                                                */
+                                            }
+                                        });
+                                    }
+
+                                    @Override
+                                    public void onFailure(WoogeenException e) {
+                                        Log.d(TAG, e.getMessage());
+                                    }
+
+                                });
+                    }
+                    break;
+                case SWITCH_CAMERA:
+                    localStream.switchCamera(new ActionCallback<Boolean>(){
+
+                        @Override
+                        public void onSuccess(final Boolean isFrontCamera) {
+                            runOnUiThread(new Runnable() {
+                                public void run() {
+                                    // switchCameraBtn.setEnabled(true);
+                                    Toast.makeText(MainActivity.this,
+                                            "Switch to " + (isFrontCamera ? "front" : "back") + " camera.",
+                                            Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                            //mirror = !mirror;
+                            localSurfaceRenderer.update(localStreamRenderer, 0, 0, 100, 100, RendererCommon.ScalingType.SCALE_ASPECT_FILL, mirror);
+                        }
+
+                        @Override
+                        public void onFailure(final WoogeenException e) {
+                            runOnUiThread(new Runnable(){
+
+                                @Override
+                                public void run() {
+                                    // switchCameraBtn.setEnabled(true);
+                                    Toast.makeText(MainActivity.this,
+                                            "Failed to switch camera. " + e.getLocalizedMessage(),
+                                            Toast.LENGTH_SHORT).show();
+                                }
+
+                            });
+                        }
+
+                    });
+                    break;
+                case SEND_DATA:
+                    msgString = "TODO:MESSAGE_STRING";;
+                    destId = "TODO:ID_OF_TARGET";
+                    Log.d(TAG, "send data:" + msgString + " to " + destId);
+                    peerClient.send(msgString, destId, new ActionCallback<Void>() {
+
+                        @Override
+                        public void onSuccess(Void result) {
+                            runOnUiThread(new Runnable() {
+                                public void run() {
+                                    Toast.makeText(MainActivity.this,
+                                            "Sent successfully.",Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onFailure(final WoogeenException e) {
+                            runOnUiThread(new Runnable() {
+                                public void run() {
+                                    Toast.makeText(MainActivity.this, e.getMessage(),
+                                            Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                            Log.d(TAG, e.getMessage());
+                        }
+
+                    });
+            }
+            super.handleMessage(msg);
+
         }
     }
 }
