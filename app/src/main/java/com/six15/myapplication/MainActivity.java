@@ -13,6 +13,10 @@ import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
+import android.os.Message;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
@@ -28,19 +32,35 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 
+import com.intel.webrtc.base.ClientContext;
+import com.intel.webrtc.base.LocalCameraStream;
+import com.intel.webrtc.base.MediaCodec;
+import com.intel.webrtc.base.RemoteStream;
+import com.intel.webrtc.base.WoogeenException;
+import com.intel.webrtc.base.WoogeenSurfaceRenderer;
+import com.intel.webrtc.p2p.PeerClient;
+import com.intel.webrtc.p2p.PeerClientConfiguration;
+
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.webrtc.EglBase;
 import org.webrtc.MediaStream;
+import org.webrtc.PeerConnection;
+import org.webrtc.RendererCommon;
 import org.webrtc.VideoRenderer;
 import org.webrtc.VideoRendererGui;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 import java.util.StringTokenizer;
 
 public class MainActivity extends AppCompatActivity  implements WebRtcClient.RtcListener, SurfaceHolder.Callback{
@@ -68,7 +88,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     private static final int REMOTE_Y = 0;
     private static final int REMOTE_WIDTH = 100;
     private static final int REMOTE_HEIGHT = 100;
-    private VideoRendererGui.ScalingType scalingType = VideoRendererGui.ScalingType.SCALE_ASPECT_FILL;
+
     private GLSurfaceView vsv;
     private VideoRenderer.Callbacks remoteRender;
     private VideoRenderer.Callbacks localRender;
@@ -76,6 +96,19 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     private String mSignalingServerAddress;
     private SurfaceView ov;
     private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    // Intel Updates
+    private String selfId = "";
+    private String destId = "";
+    private String server;
+    private PeerClient peerClient;
+    private LocalCameraStream localStream;
+    private EglBase rootEglBase;
+    private LinearLayout remoteViewContainer, localViewContainer;
+    private HandlerThread peerThread;
+    private PeerHandler peerHandler;
+    private Message message;
+    private String msgString;
 
     private SurfaceHolder sh;
 
@@ -167,11 +200,11 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         // local and remote render
         remoteRender = VideoRendererGui.create(
                 REMOTE_X, REMOTE_Y,
-                REMOTE_WIDTH, REMOTE_HEIGHT, scalingType, false);
+                REMOTE_WIDTH, REMOTE_HEIGHT, null, false);
 
         localRender = VideoRendererGui.create(
                 LOCAL_X_CONNECTING, LOCAL_Y_CONNECTING,
-                LOCAL_WIDTH_CONNECTING, LOCAL_HEIGHT_CONNECTING, scalingType, true);
+                LOCAL_WIDTH_CONNECTING, LOCAL_HEIGHT_CONNECTING, null, true);
 
         final Intent intent = getIntent();
         final String action = intent.getAction();
@@ -179,6 +212,68 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         if (Intent.ACTION_VIEW.equals(action)) {
             final List<String> segments = intent.getData().getPathSegments();
             callerId = segments.get(0);
+        }
+
+        try {
+            initVideoStreamsViews();
+            initAudioControl();
+            initPeerClient();
+        } catch (WoogeenException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void initVideoStreamsViews() throws WoogeenException{
+        /*
+        localView = new WoogeenSampleView(this);
+        localSurfaceRenderer = new WoogeenSurfaceRenderer(localView);
+        localViewContainer.addView(localView);
+        localStreamRenderer = localSurfaceRenderer.createVideoRenderer(0, 0, 100, 100, RendererCommon.ScalingType.SCALE_ASPECT_FILL, true);
+
+        remoteView = new WoogeenSampleView(this);
+        remoteSurfaceRenderer = new WoogeenSurfaceRenderer(remoteView);
+        remoteViewContainer.addView(remoteView);
+        remoteStreamRenderer = remoteSurfaceRenderer.createVideoRenderer(0, 0, 100, 100, RendererCommon.ScalingType.SCALE_ASPECT_FILL, false);
+        */
+    }
+
+    private void initPeerClient(){
+        try{
+            // Initialization work.
+            rootEglBase = new EglBase();
+
+            ClientContext.setApplicationContext(this, rootEglBase.getContext());
+            List<PeerConnection.IceServer> iceServers = new ArrayList<PeerConnection.IceServer>();
+            iceServers.add(new PeerConnection.IceServer("stun:61.152.239.60"));
+            iceServers.add(new PeerConnection.IceServer(
+                    "turn:61.152.239.60:4478?transport=udp", "woogeen",
+                    "master"));
+            iceServers.add(new PeerConnection.IceServer(
+                    "turn:61.152.239.60:4478?transport=tcp", "woogeen",
+                    "master"));
+            PeerClientConfiguration config = new PeerClientConfiguration();
+            config.setIceServers(iceServers);
+            config.setVideoCodec(MediaCodec.VideoCodec.H264);
+            peerClient = new PeerClient(config, new SocketSignalingChannel());
+            peerClient.addObserver(observer);
+            peerThread = new HandlerThread("PeerThread");
+            peerThread.start();
+            peerHandler = new PeerHandler(peerThread.getLooper());
+        }catch(WoogeenException e1){
+            e1.printStackTrace();
+        }
+    }
+
+    private void initAudioControl(){
+        try {
+            Properties p = new Properties();
+            InputStream s = this.getAssets().open("audio_control.properties");
+            p.load(s);
+
+            ClientContext.setAudioControlEnabled(Boolean.parseBoolean(p.getProperty("enable_audio_control")));
+            ClientContext.setAudioLevelOverloud(Integer.parseInt(p.getProperty("audio_level_overloud")));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -188,7 +283,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         PeerConnectionParameters params = new PeerConnectionParameters(
                 true, false, 320, 240, 10, 1, VIDEO_CODEC_H264, true, 1, AUDIO_CODEC_OPUS, true);
 
-       client = new WebRtcClient(this, mSignalingServerAddress, params, VideoRendererGui.getEGLContext());
+       //client = new WebRtcClient(this, mSignalingServerAddress, params, VideoRendererGui.getEGLContext());
     }
 
     private void requestCameraPermission() {
@@ -420,11 +515,12 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     public void onAddRemoteStream(MediaStream remoteStream, int endPoint) {
         Log.i(TAG, "onAddRemoteStream");
         remoteStream.videoTracks.get(0).addRenderer(new VideoRenderer(remoteRender));
-        VideoRendererGui.update(remoteRender,
-                REMOTE_X, REMOTE_Y,
-                REMOTE_WIDTH, REMOTE_HEIGHT, scalingType);
 
         /*
+        VideoRendererGui.update(remoteRender,
+                REMOTE_X, REMOTE_Y,
+                REMOTE_WIDTH, REMOTE_HEIGHT, null);
+
         VideoRendererGui.update(localRender,
                 LOCAL_X_CONNECTED, LOCAL_Y_CONNECTED,
                 LOCAL_WIDTH_CONNECTED, LOCAL_HEIGHT_CONNECTED,
@@ -543,5 +639,60 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     public void surfaceDestroyed(SurfaceHolder holder) {
 
         Log.i(TAG, "surfaceDestroyed");
+    }
+
+    PeerClient.PeerClientObserver observer = new PeerClient.PeerClientObserver() {
+
+        @Override
+        public void onServerDisconnected() {
+
+        }
+
+        @Override
+        public void onInvited(String s) {
+
+        }
+
+        @Override
+        public void onDenied(String s) {
+
+        }
+
+        @Override
+        public void onAccepted(String s) {
+
+        }
+
+        @Override
+        public void onChatStopped(String s) {
+
+        }
+
+        @Override
+        public void onChatStarted(String s) {
+
+        }
+
+        @Override
+        public void onDataReceived(String s, String s1) {
+
+        }
+
+        @Override
+        public void onStreamAdded(RemoteStream remoteStream) {
+
+        }
+
+        @Override
+        public void onStreamRemoved(RemoteStream remoteStream) {
+
+        }
+    };
+
+    class PeerHandler extends Handler {
+
+        public PeerHandler(Looper looper) {
+            super(looper);
+        }
     }
 }
