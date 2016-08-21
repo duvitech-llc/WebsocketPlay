@@ -6,6 +6,7 @@
     <string name="serverIp">https://p2p.duvitech.com:8096</string>
     <string name="server_host">six15wifiportal.azurewebsites.net/ws</string>
     <string name="local_host">192.168.1.106/ws</string>
+    <string name="awe_host">192.168.0.5/ws</string>
     <string name="duvitech_office">192.168.1.68/ws</string>
     <string name="send">Send</string>
     <string name="message">Message</string>

@@ -25,9 +25,12 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:23.3.0'
     compile 'com.google.code.gson:gson:2.6.2'
-    compile files('libs/libjingle_peerconnection.jar')
+    compile('io.socket:socket.io-client:0.7.0') {
+        // excluding org.json which is provided by Android
+        exclude group: 'org.json', module: 'json'
+    }
     compile files('libs/woogeenbase.jar')
-    compile files('libs/woogeenconference.jar')
     compile files('libs/woogeenp2p.jar')
-    compile 'io.socket:socket.io-client:0.7.0'
+    compile files('libs/libjingle_peerconnection.jar')
+
 }
