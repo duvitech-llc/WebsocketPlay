@@ -8,11 +8,9 @@ import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.PixelFormat;
 import android.graphics.Point;
-import android.graphics.PorterDuff;
+import android.media.AudioManager;
 import android.opengl.GLSurfaceView;
-import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -24,13 +22,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
@@ -40,15 +36,13 @@ import com.intel.webrtc.base.ClientContext;
 import com.intel.webrtc.base.LocalCameraStream;
 import com.intel.webrtc.base.MediaCodec;
 import com.intel.webrtc.base.RemoteStream;
+import com.intel.webrtc.base.Stream;
 import com.intel.webrtc.base.WoogeenException;
 import com.intel.webrtc.base.WoogeenSurfaceRenderer;
 import com.intel.webrtc.p2p.PeerClient;
 import com.intel.webrtc.p2p.PeerClientConfiguration;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.webrtc.EglBase;
-import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.RendererCommon;
 import org.webrtc.VideoRenderer;
@@ -56,23 +50,17 @@ import org.webrtc.VideoRendererGui;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Properties;
-import java.util.StringTokenizer;
+import java.util.Timer;
 
-public class MainActivity extends AppCompatActivity  implements WebRtcClient.RtcListener, SurfaceHolder.Callback{
+public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Callback{
 
     public static final String sServerID = "AAAAAAAAAAAAAAAAAAAAAA";
     private static final String TAG = "MainActivity";
     private String callerId = null;
-    private final static int VIDEO_CALL_SENT = 666;
-    private static final String VIDEO_CODEC_VP9 = "VP9";
-    private static final String VIDEO_CODEC_VP8 = "VP8";
-    private static final String VIDEO_CODEC_H264 = "H264";
-    private static final String AUDIO_CODEC_OPUS = "opus";
+
     // Local preview screen position before call is connected.
     private static final int LOCAL_X_CONNECTING = 0;
     private static final int LOCAL_Y_CONNECTING = 0;
@@ -92,10 +80,17 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     private GLSurfaceView vsv;
     private VideoRenderer.Callbacks remoteRender;
     private VideoRenderer.Callbacks localRender;
-    private WebRtcClient client;
     private String mSignalingServerAddress;
     private SurfaceView ov;
     private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    private WoogeenSurfaceRenderer localSurfaceRenderer;
+    private WoogeenSurfaceRenderer remoteSurfaceRenderer;
+    private Stream.VideoRendererInterface localStreamRenderer;
+    private Stream.VideoRendererInterface remoteStreamRenderer;
+
+    private WoogeenSampleView localView;
+    private WoogeenSampleView remoteView;
 
     // Intel Updates
     private String selfId = "";
@@ -109,6 +104,17 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     private PeerHandler peerHandler;
     private Message message;
     private String msgString;
+
+    private final static int LOGIN = 1;
+    private final static int LOGOUT = 2;
+    private final static int INVITE = 3;
+    private final static int STOP = 4;
+    private final static int PUBLISH = 5;
+    private final static int UNPUBLISH = 6;
+    private final static int SWITCH_CAMERA = 7;
+    private final static int SEND_DATA = 8;
+
+    private Timer statsTimer;
 
     private SurfaceHolder sh;
 
@@ -133,6 +139,9 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
                         | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
                         | WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
                         | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
+
+        AudioManager audioManager = ((AudioManager) getSystemService(AUDIO_SERVICE));
+        audioManager.setSpeakerphoneOn(true);
 
         setContentView(R.layout.activity_main);
         if (ContextCompat.checkSelfPermission(this,
@@ -159,22 +168,16 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
                     "RECORD_AUDIO permission has already been granted.");
         }
 
+        localViewContainer = (LinearLayout) findViewById(R.id.local_view_container);
+        remoteViewContainer = (LinearLayout) findViewById(R.id.remote_view_container);
+
+
         mSignalingServerAddress = "ws://" + getResources().getString(R.string.server_host);
-        mIndicator = (ImageView)findViewById(R.id.imgDisplay);
-        mIndicator.setImageResource(R.drawable.stop_icn);
+      //  mIndicator = (ImageView)findViewById(R.id.imgDisplay);
+      //  mIndicator.setImageResource(R.drawable.stop_icn);
 
         mMessageList = new ArrayList<>();
         drawObjectList = new ArrayList<>();
-
-        vsv = (GLSurfaceView) findViewById(R.id.glview_call);
-        vsv.setPreserveEGLContextOnPause(true);
-        vsv.setKeepScreenOn(true);
-        VideoRendererGui.setView(vsv, new Runnable() {
-            @Override
-            public void run() {
-                init();
-            }
-        });
 
         vsv.setBackgroundColor(Color.BLACK);
 
@@ -224,7 +227,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     }
 
     private void initVideoStreamsViews() throws WoogeenException{
-        /*
+
         localView = new WoogeenSampleView(this);
         localSurfaceRenderer = new WoogeenSurfaceRenderer(localView);
         localViewContainer.addView(localView);
@@ -234,7 +237,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
         remoteSurfaceRenderer = new WoogeenSurfaceRenderer(remoteView);
         remoteViewContainer.addView(remoteView);
         remoteStreamRenderer = remoteSurfaceRenderer.createVideoRenderer(0, 0, 100, 100, RendererCommon.ScalingType.SCALE_ASPECT_FILL, false);
-        */
+
     }
 
     private void initPeerClient(){
@@ -244,7 +247,7 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
 
             ClientContext.setApplicationContext(this, rootEglBase.getContext());
             List<PeerConnection.IceServer> iceServers = new ArrayList<PeerConnection.IceServer>();
-            iceServers.add(new PeerConnection.IceServer("stun:61.152.239.60"));
+            iceServers.add(new PeerConnection.IceServer("stun:23.21.150.121"));
             iceServers.add(new PeerConnection.IceServer(
                     "turn:61.152.239.60:4478?transport=udp", "woogeen",
                     "master"));
@@ -280,10 +283,6 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     private void init() {
         Point displaySize = new Point();
         getWindowManager().getDefaultDisplay().getSize(displaySize);
-        PeerConnectionParameters params = new PeerConnectionParameters(
-                true, false, 320, 240, 10, 1, VIDEO_CODEC_H264, true, 1, AUDIO_CODEC_OPUS, true);
-
-       //client = new WebRtcClient(this, mSignalingServerAddress, params, VideoRendererGui.getEGLContext());
     }
 
     private void requestCameraPermission() {
@@ -314,92 +313,39 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
 
     @Override
     public void onStop() {
-        if(client != null) {
-            client.onStop();
-        }
         super.onStop();
     }
 
     @Override
     public void onPause() {
-        super.onPause();
-        vsv.onPause();
-        if(client != null) {
-            client.onPause();
+        if (localStream != null) {
+            localStream.disableVideo();
+            localStream.disableAudio();
+            Toast.makeText(this, "Woogeen is running in the background.",
+                    Toast.LENGTH_SHORT).show();
         }
+        super.onPause();
     }
 
     @Override
     public void onResume() {
-        super.onResume();
-        vsv.onResume();
-        if(client != null) {
-            client.onResume();
+        if (localStream != null) {
+            localStream.enableVideo();
+            localStream.enableAudio();
+            Toast.makeText(this, "Welcome back", Toast.LENGTH_SHORT).show();
         }
+        super.onResume();
     }
 
     @Override
     public void onDestroy() {
-        if(client != null) {
-            client.onDestroy();
-        }
         super.onDestroy();
-    }
-
-    @Override
-    public void onCallReady(String callId) {
-        Log.i(TAG, "onCallReady");
-        if (callerId != null) {
-            try {
-                answer(callerId);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        } else {
-            call(callId);
-        }
-    }
-
-    public void answer(String callerId) throws JSONException {
-        Log.i(TAG, "answer Caller: " + callerId);
-        client.sendMessage(callerId, "init", null);
-        startCam();
     }
 
     private String getPhoneName() {
         BluetoothAdapter myDevice = BluetoothAdapter.getDefaultAdapter();
         String deviceName = myDevice.getName();
         return deviceName;
-    }
-
-    public void call(String callId) {
-        Log.i(TAG, "call Caller: " + callId);
-        // no need to do this unless we are placing a call
-        // this can be startcam or client.start(friendlyName)
-        String name = callId;
-
-        //TODO: need to get friendly name of this device
-        String friendlyName = null;
-        try {
-            friendlyName = getPhoneName();
-        }catch (Exception ex){
-            Log.e(TAG, ex.getMessage());
-        }
-
-        if (friendlyName == null || friendlyName.isEmpty())
-            friendlyName = Build.SERIAL;
-
-        if (friendlyName == null || friendlyName.isEmpty())
-            friendlyName = "WIFI_Device";
-
-        client.start(friendlyName);
-/*
-        Intent msg = new Intent(Intent.ACTION_SEND);
-        // TODO: probably need to make this a message
-        msg.putExtra(Intent.EXTRA_TEXT, mSignalingServerAddress + "/" + callId);
-        msg.setType("text/plain");
-        startActivityForResult(Intent.createChooser(msg, "Call someone :"), VIDEO_CALL_SENT);
-*/
     }
 
     private void updateDisplay(){
@@ -422,136 +368,6 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
 
         sh.unlockCanvasAndPost(canvas);
 
-    }
-
-    @Override
-    public void drawCircle(CircleObject co){
-        Log.i(TAG, "Draw Circle");
-        drawObjectList.add(co);
-        updateDisplay();
-    }
-
-    @Override
-    public void drawSquare(SquareObject so){
-        Log.i(TAG, "Draw Square");
-
-        drawObjectList.add(so);
-        updateDisplay();
-    }
-
-    @Override
-    public void drawLine(LineObject lo){
-        Log.i(TAG, "Draw Line");
-
-        drawObjectList.add(lo);
-        updateDisplay();
-
-    }
-
-    @Override
-    public void clearScreen(){
-        Log.i(TAG, "Clear Screen");
-        drawObjectList.clear();
-        updateDisplay();
-    }
-
-    public void startCam() {
-        // Camera settings
-        client.start("android_test");
-    }
-
-    @Override
-    public void onStatusChanged(final String newStatus) {
-        Log.i(TAG, "onStatusChanged: " + newStatus);
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getApplicationContext(), newStatus, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    @Override
-    public void onMessage(String from, String msg) {
-        final String dispMessage = from + ": " + msg;
-        mMessageList.add(new TextMessage(from, msg));
-        if(mMessageList.size()>4){
-            // remove oldest
-            mMessageList.remove(0);
-        }
-
-        // show messages
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getApplicationContext(), dispMessage, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    @Override
-    public void onLocalStream(MediaStream localStream) {
-        Log.i(TAG, "onLocalStream");
-        // render to screen
-
-/*
-        localStream.videoTracks.get(0).addRenderer(new VideoRenderer(localRender));
-        VideoRendererGui.update(localRender,
-                LOCAL_X_CONNECTING, LOCAL_Y_CONNECTING,
-                LOCAL_WIDTH_CONNECTING, LOCAL_HEIGHT_CONNECTING,
-                scalingType);
-*/
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                //ov.setBackgroundColor(Color.TRANSPARENT);
-                mIndicator.setImageResource(R.drawable.play_icn);
-            }
-        });
-
-    }
-
-    @Override
-    public void onAddRemoteStream(MediaStream remoteStream, int endPoint) {
-        Log.i(TAG, "onAddRemoteStream");
-        remoteStream.videoTracks.get(0).addRenderer(new VideoRenderer(remoteRender));
-
-        /*
-        VideoRendererGui.update(remoteRender,
-                REMOTE_X, REMOTE_Y,
-                REMOTE_WIDTH, REMOTE_HEIGHT, null);
-
-        VideoRendererGui.update(localRender,
-                LOCAL_X_CONNECTED, LOCAL_Y_CONNECTED,
-                LOCAL_WIDTH_CONNECTED, LOCAL_HEIGHT_CONNECTED,
-                scalingType);
-
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                ov.setBackgroundColor(Color.TRANSPARENT);
-                mIndicator.setImageResource(R.drawable.play_icn);
-            }
-        });
-        */
-    }
-
-    @Override
-    public void onRemoveRemoteStream(int endPoint) {
-        Log.i(TAG, "onRemoveRemoteStream");
-        /*
-        VideoRendererGui.update(localRender,
-                LOCAL_X_CONNECTING, LOCAL_Y_CONNECTING,
-                LOCAL_WIDTH_CONNECTING, LOCAL_HEIGHT_CONNECTING,
-                scalingType);
-        */
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                mIndicator.setImageResource(R.drawable.stop_icn);
-               // ov.setBackgroundColor(Color.BLACK);
-            }
-        });
     }
 
     @Override
@@ -606,17 +422,19 @@ public class MainActivity extends AppCompatActivity  implements WebRtcClient.Rtc
     }
 
     public void sendMessage(View view) {
+        /*
         EditText editText = (EditText)findViewById(R.id.message);
         String message = editText.getText().toString();
 
         try {
             String to = null;
-            client.sendTextMessage(to,"message",message);
+            //client.sendTextMessage(to,"message",message);
         }catch(Exception ex){
             Log.e("ERROR", ex.getMessage());
         }
 
         editText.setText("");
+        */
     }
 
 
