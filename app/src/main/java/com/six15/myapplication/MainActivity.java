@@ -330,6 +330,14 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
             Toast.makeText(this, "Woogeen is running in the background.",
                     Toast.LENGTH_SHORT).show();
         }
+
+        if(isConnected) {
+            // log into server
+            message = peerHandler.obtainMessage();
+            message.what = LOGOUT;
+            message.sendToTarget();
+        }
+
         super.onPause();
     }
 
