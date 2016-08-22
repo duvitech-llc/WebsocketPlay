@@ -8,7 +8,9 @@ import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PixelFormat;
 import android.graphics.Point;
+import android.graphics.PorterDuff;
 import android.media.AudioManager;
 import android.opengl.GLSurfaceView;
 import android.os.Handler;
@@ -54,6 +56,7 @@ import org.webrtc.RendererCommon;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -189,6 +192,7 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
 
         ov = (SurfaceView) findViewById(R.id.overlaySurface);
         ov.setZOrderMediaOverlay(true);
+
         ov.setBackgroundColor(Color.TRANSPARENT);
 /*
         ov.setOnTouchListener(new View.OnTouchListener() {
@@ -199,13 +203,16 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
                 return false;
             }
         });
+
+*/
+
         sh = ov.getHolder();
-        sh.addCallback(this);
+        sh.setFormat(PixelFormat.TRANSPARENT);
         paint.setColor(Color.BLUE);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(8);
+        sh.addCallback(this);
 
-        */
         final Intent intent = getIntent();
         final String action = intent.getAction();
 
@@ -362,7 +369,7 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
         int y = canvas.getHeight();
         // clear screen and render objects
 
-        canvas.drawColor(Color.BLACK);
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
         for(int c=0; c<drawObjectList.size(); c++){
             if(drawObjectList.get(c).hasSourceDimensions()){
                 // set width and height of canvas
@@ -375,6 +382,100 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
 
         sh.unlockCanvasAndPost(canvas);
 
+    }
+
+    private void fnDrawHandler(JSONObject obj){
+        String sdat;
+        JSONObject data;
+        String typ;
+        String cl;
+        int c;
+        float x1;
+        float y1;
+        float x2;
+        float y2;
+        float r1;
+
+        try {
+            String sType = obj.getString("type");
+            switch(sType){
+                case "clear":
+                    Log.d(TAG,"fnDrawHandler:Clear Screen");
+                    drawObjectList.clear();
+
+                    break;
+                case "line":
+                    Log.d(TAG,"fnDrawHandler:Draw Line");
+                    sdat = obj.getString("data");
+                    data = new JSONObject(sdat);
+                    typ = data.getString("p");
+                    cl = data.getString("c");
+                    c = Color.parseColor(cl);
+                    x1 = BigDecimal.valueOf(data.getDouble("x1")).floatValue();
+                    y1 = BigDecimal.valueOf(data.getDouble("y1")).floatValue();
+                    x2 = BigDecimal.valueOf(data.getDouble("x2")).floatValue();
+                    y2 = BigDecimal.valueOf(data.getDouble("y2")).floatValue();
+                    LineObject lo = new LineObject(x1,y1,x2,y2,c);
+                    // check if translation is needed
+                    if(!data.isNull("w") && !data.isNull("h")){
+                        lo.setSrcWidth(data.getInt("w"));
+                        lo.setSrcHeight(data.getInt("h"));
+                    }
+                    drawObjectList.add(lo);
+                    break;
+                case "circle":
+                    Log.d(TAG,"fnDrawHandler:Draw Circle");
+                    sdat = obj.getString("data");
+                    data = new JSONObject(sdat);
+                    typ = data.getString("p");
+                    cl = data.getString("c");
+                    c = Color.parseColor(cl);
+                    x1 = BigDecimal.valueOf(data.getDouble("x1")).floatValue();
+                    y1 = BigDecimal.valueOf(data.getDouble("y1")).floatValue();
+                    r1 = BigDecimal.valueOf(data.getDouble("r1")).floatValue();
+                    CircleObject co = new CircleObject(x1,y1,r1,c);
+                    // check if translation is needed
+                    if(!data.isNull("w") && !data.isNull("h")){
+                        co.setSrcWidth(data.getInt("w"));
+                        co.setSrcHeight(data.getInt("h"));
+                    }
+                    drawObjectList.add(co);
+                    break;
+                case "square":
+                    Log.d(TAG,"fnDrawHandler:Draw Square");
+                    sdat = obj.getString("data");
+                    data = new JSONObject(sdat);
+                    typ = data.getString("p");
+                    cl = data.getString("c");
+                    c = Color.parseColor(cl);
+                    x1 = BigDecimal.valueOf(data.getDouble("x1")).floatValue();
+                    y1 = BigDecimal.valueOf(data.getDouble("y1")).floatValue();
+                    x2 = BigDecimal.valueOf(data.getDouble("x2")).floatValue();
+                    y2 = BigDecimal.valueOf(data.getDouble("y2")).floatValue();
+                    SquareObject so = new SquareObject (y1,x1,y2,x2,  Color.argb(125, 255, 0, 0));
+                    // check if translation is needed
+                    if(!data.isNull("w") && !data.isNull("h")){
+                        so.setSrcWidth(data.getInt("w"));
+                        so.setSrcHeight(data.getInt("h"));
+                    }
+                    drawObjectList.add(so);
+
+                    break;
+                default:
+                    Log.d(TAG,"fnDrawHandler: Unkown Draw Command");
+                    break;
+            }
+
+
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    updateDisplay();
+                }
+            });
+
+        }catch(Exception e){
+            Log.e(TAG, "fnDrawHandler Error: " + e.getLocalizedMessage());
+        }
     }
 
     @Override
@@ -450,7 +551,7 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
 
         Log.i(TAG, "surfaceCreated");
         Canvas canvas = sh.lockCanvas();
-        canvas.drawColor(Color.BLACK);
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
         sh.unlockCanvasAndPost(canvas);
     }
 
@@ -669,7 +770,7 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
                         message.sendToTarget();
                     }
                 }else if(sHandler.compareTo("draw")==0){
-
+                    fnDrawHandler(data);
                 }
 
             }catch (Exception e){

@@ -36,7 +36,6 @@ public class SquareObject extends BaseObject {
         paint.setStyle(Paint.Style.FILL_AND_STROKE);
         canvas.drawRect(left * xTranslateFactor, top * yTranslateFactor,
                 right * xTranslateFactor, bottom * yTranslateFactor, paint);
-
         paint.setStyle(Paint.Style.STROKE);
     }
 
