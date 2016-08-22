@@ -51,8 +51,6 @@ import org.json.JSONObject;
 import org.webrtc.EglBase;
 import org.webrtc.PeerConnection;
 import org.webrtc.RendererCommon;
-import org.webrtc.VideoRenderer;
-import org.webrtc.VideoRendererGui;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -84,14 +82,13 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
     private static final int REMOTE_WIDTH = 100;
     private static final int REMOTE_HEIGHT = 100;
 
-    private GLSurfaceView vsv;
-    private VideoRenderer.Callbacks remoteRender;
-    private VideoRenderer.Callbacks localRender;
-    private String mSignalingServerAddress;
     private SurfaceView ov;
     private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     private String publishPeerId = "";
+    private boolean isConnected = false;
+    private boolean isSendingVideo = false;
+    private boolean isReceivingVideo = false;
 
     private WoogeenSurfaceRenderer localSurfaceRenderer;
     private WoogeenSurfaceRenderer remoteSurfaceRenderer;
@@ -183,20 +180,17 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
         localViewContainer = (LinearLayout) findViewById(R.id.local_view_container);
         remoteViewContainer = (LinearLayout) findViewById(R.id.remote_view_container);
 
-
-        mSignalingServerAddress = "ws://" + getResources().getString(R.string.server_host);
+      //  mSignalingServerAddress = "ws://" + getResources().getString(R.string.server_host);
       //  mIndicator = (ImageView)findViewById(R.id.imgDisplay);
       //  mIndicator.setImageResource(R.drawable.stop_icn);
 
         mMessageList = new ArrayList<>();
         drawObjectList = new ArrayList<>();
 
-        vsv.setBackgroundColor(Color.BLACK);
-
         ov = (SurfaceView) findViewById(R.id.overlaySurface);
         ov.setZOrderMediaOverlay(true);
         ov.setBackgroundColor(Color.TRANSPARENT);
-        /*
+/*
         ov.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -205,22 +199,13 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
                 return false;
             }
         });
-        */
         sh = ov.getHolder();
         sh.addCallback(this);
         paint.setColor(Color.BLUE);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(8);
 
-        // local and remote render
-        remoteRender = VideoRendererGui.create(
-                REMOTE_X, REMOTE_Y,
-                REMOTE_WIDTH, REMOTE_HEIGHT, null, false);
-
-        localRender = VideoRendererGui.create(
-                LOCAL_X_CONNECTING, LOCAL_Y_CONNECTING,
-                LOCAL_WIDTH_CONNECTING, LOCAL_HEIGHT_CONNECTING, null, true);
-
+        */
         final Intent intent = getIntent();
         final String action = intent.getAction();
 
@@ -237,11 +222,6 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
             e.printStackTrace();
         }
 
-        // log into server
-        message = peerHandler.obtainMessage();
-        message.what = LOGIN;
-        message.sendToTarget();
-
     }
 
     private void initVideoStreamsViews() throws WoogeenException{
@@ -250,12 +230,13 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
         localSurfaceRenderer = new WoogeenSurfaceRenderer(localView);
         localViewContainer.addView(localView);
         localStreamRenderer = localSurfaceRenderer.createVideoRenderer(0, 0, 100, 100, RendererCommon.ScalingType.SCALE_ASPECT_FILL, true);
+        localView.setVisibility(View.INVISIBLE);
 
         remoteView = new WoogeenSampleView(this);
         remoteSurfaceRenderer = new WoogeenSurfaceRenderer(remoteView);
         remoteViewContainer.addView(remoteView);
         remoteStreamRenderer = remoteSurfaceRenderer.createVideoRenderer(0, 0, 100, 100, RendererCommon.ScalingType.SCALE_ASPECT_FILL, false);
-
+        remoteView.setVisibility(View.INVISIBLE);
     }
 
     private void initPeerClient(){
@@ -347,6 +328,14 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
 
     @Override
     public void onResume() {
+
+        if(!isConnected) {
+            // log into server
+            message = peerHandler.obtainMessage();
+            message.what = LOGIN;
+            message.sendToTarget();
+        }
+
         if (localStream != null) {
             localStream.enableVideo();
             localStream.enableAudio();
@@ -363,7 +352,7 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
     private String getPhoneName() {
         BluetoothAdapter myDevice = BluetoothAdapter.getDefaultAdapter();
         String deviceName = myDevice.getName();
-        return deviceName;
+        return deviceName.replaceAll("\\s","");
     }
 
     private void updateDisplay(){
@@ -498,6 +487,8 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
                     selfIdEdTx.setEnabled(true);
                     serverEdTx.setEnabled(true);
                     */
+
+                    isConnected = false;
                 }
             });
         }
@@ -649,21 +640,54 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
 
         @Override
         public void onDataReceived(final String peerId, final String msg) {
-            runOnUiThread(new Runnable() {
-                public void run() {
-                    Toast.makeText(MainActivity.this,"" + peerId + ":" + msg, Toast.LENGTH_LONG).show();
+
+            Log.d(TAG, "onDataReceived from: " + peerId + "data: " + msg );
+            try {
+                JSONObject data = new JSONObject(msg);
+                String sHandler = data.getString("handler");
+                if (sHandler.compareTo("message")==0){
+                    final String fn = data.getString("dispname");
+                    final String fmsg = data.getString("data");
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            Toast.makeText(MainActivity.this,"" + fn + ": " + fmsg, Toast.LENGTH_LONG).show();
+                        }
+                    });
+
+                }else if(sHandler.compareTo("request")==0){
+                    String cmd = data.getString("type");
+
+                    if(cmd.compareTo("play")==0){
+                        destId = peerId;
+                        message = peerHandler.obtainMessage();
+                        message.what = PUBLISH;
+                        message.sendToTarget();
+                    }else{
+                        destId = peerId;
+                        message = peerHandler.obtainMessage();
+                        message.what = UNPUBLISH;
+                        message.sendToTarget();
+                    }
+                }else if(sHandler.compareTo("draw")==0){
+
                 }
-            });
+
+            }catch (Exception e){
+                Log.e(TAG, "onDataReceived Error: " + e.getLocalizedMessage());
+            }
+
         }
 
         @Override
         public void onStreamAdded(final RemoteStream stream) {
             Log.d(TAG, "onStreamAdded : from " + stream.getRemoteUserId());
+            isReceivingVideo = true;
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     try {
                         stream.attach(remoteStreamRenderer);
+                        remoteView.setVisibility(View.VISIBLE);
                         Toast.makeText(MainActivity.this, "Added remote stream "
                                         + "from "+stream.getRemoteUserId(),
                                 Toast.LENGTH_LONG).show();
@@ -678,9 +702,11 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
         @Override
         public void onStreamRemoved(final RemoteStream stream) {
             Log.d(TAG, "onStreamRemoved");
+            isReceivingVideo = false;
             remoteStreamRenderer.cleanFrame();
             runOnUiThread(new Runnable() {
                 public void run() {
+                    remoteView.setVisibility(View.INVISIBLE);
                     Toast.makeText(MainActivity.this, "onStreamRemoved",
                             Toast.LENGTH_SHORT).show();
                 }
@@ -699,7 +725,7 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
             switch (msg.what) {
                 case LOGIN:
                     selfId = getPhoneName();
-                    server = getResources().getString(R.string.server_host);
+                    server = getResources().getString(R.string.serverIp);
                     JSONObject loginObject = new JSONObject();
                     try {
                         loginObject.put("host", server);
@@ -712,18 +738,12 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
 
                                 @Override
                                 public void onSuccess(String result) {
+                                    isConnected = true;
                                     runOnUiThread(new Runnable() {
                                         public void run() {
                                             Toast.makeText(MainActivity.this,
                                                     "onServerConnected",
                                                     Toast.LENGTH_SHORT).show();
-                                            /*
-                                            serverEdTx.setEnabled(false);
-                                            loginBtn.setEnabled(false);
-                                            selfIdEdTx.setEnabled(false);
-                                            logoutBtn.setEnabled(true);
-                                            connectBtn.setEnabled(true);
-                                            */
                                         }
                                     });
                                 }
@@ -731,23 +751,16 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
                                 @Override
                                 public void onFailure(WoogeenException e) {
                                     Log.d(TAG, "Failed to connect server:" + e.getMessage());
+
+                                    isSendingVideo = false;
+                                    isReceivingVideo = false;
+                                    isConnected = false;
+
                                     runOnUiThread(new Runnable() {
                                         public void run() {
                                             Toast.makeText(MainActivity.this,
                                                     "onServerConnectFailed",
                                                     Toast.LENGTH_SHORT).show();
-                                            /*
-                                            loginBtn.setEnabled(true);
-                                            logoutBtn.setEnabled(false);
-                                            startVideoBtn.setEnabled(false);
-                                            stopVideoBtn.setEnabled(false);
-                                            switchCameraBtn.setEnabled(false);
-                                            connectBtn.setEnabled(false);
-                                            disconnectBtn.setEnabled(false);
-                                            sendMsgBtn.setEnabled(false);
-                                            selfIdEdTx.setEnabled(true);
-                                            serverEdTx.setEnabled(true);
-                                            */
                                         }
                                     });
                                 }
@@ -763,6 +776,15 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
                                 localStream = null;
                                 localStreamRenderer.cleanFrame();
                             }
+                            isSendingVideo = false;
+                            isReceivingVideo = false;
+                            isConnected = false;
+                            runOnUiThread(new Runnable() {
+                                public void run() {
+                                remoteView.setVisibility(View.INVISIBLE);
+                                localView.setVisibility(View.INVISIBLE);
+                                }
+                            });
                         }
 
                         @Override
@@ -824,7 +846,6 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
                             }
                         }
                     }
-                    destId = "TODO:ID_OF_TARGET";
                     PublishOptions option = new PublishOptions();
                     option.setMaximumVideoBandwidth(200);
                     option.setMaximumAudioBandwidth(30);
@@ -834,13 +855,10 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
                                 @Override
                                 public void onSuccess(Void result) {
                                     publishPeerId = destId;
+                                    isSendingVideo = true;
                                     runOnUiThread(new Runnable() {
                                         public void run() {
-                                            /*
-                                            startVideoBtn.setEnabled(false);
-                                            stopVideoBtn.setEnabled(true);
-                                            switchCameraBtn.setEnabled(true);
-                                            */
+                                            localView.setVisibility(View.VISIBLE);
                                         }
                                     });
 
@@ -878,6 +896,12 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
                                         localStream = null;
                                         localStreamRenderer.cleanFrame();
                                     }
+                                    isSendingVideo = false;
+                                    runOnUiThread(new Runnable() {
+                                        public void run() {
+                                            localView.setVisibility(View.INVISIBLE);
+                                        }
+                                    });
                                 }
                             });
                     break;
@@ -891,13 +915,11 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
                                         localStream.close();
                                         localStream = null;
                                         localStreamRenderer.cleanFrame();
+
+                                        isSendingVideo = false;
                                         runOnUiThread(new Runnable() {
                                             public void run() {
-                                                /*
-                                                stopVideoBtn.setEnabled(false);
-                                                startVideoBtn.setEnabled(true);
-                                                switchCameraBtn.setEnabled(false);
-                                                */
+                                                localView.setVisibility(View.INVISIBLE);
                                             }
                                         });
                                     }
@@ -905,6 +927,12 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
                                     @Override
                                     public void onFailure(WoogeenException e) {
                                         Log.d(TAG, e.getMessage());
+                                        isSendingVideo = false;
+                                        runOnUiThread(new Runnable() {
+                                            public void run() {
+                                                localView.setVisibility(View.INVISIBLE);
+                                            }
+                                        });
                                     }
 
                                 });

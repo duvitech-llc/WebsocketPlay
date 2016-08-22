@@ -12,13 +12,15 @@
         android:layout_height="fill_parent"
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
-        android:orientation="vertical" >
+        android:orientation="vertical"
+        android:background="@android:color/black">
 
         <LinearLayout
             android:id="@+id/local_view_container"
             android:layout_width="140dp"
             android:layout_height="90dp"
-            android:orientation="horizontal" >
+            android:orientation="horizontal"
+            android:background="@android:color/black">
         </LinearLayout>
 
     </LinearLayout>
@@ -28,7 +30,8 @@
         android:layout_height="fill_parent"
         android:layout_alignParentTop="true"
         android:layout_toRightOf="@id/leftLayout"
-        android:orientation="horizontal" >
+        android:orientation="horizontal"
+        android:background="@android:color/black">
     </LinearLayout>
 
     <SurfaceView
