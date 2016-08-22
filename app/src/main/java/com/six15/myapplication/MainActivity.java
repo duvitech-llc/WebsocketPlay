@@ -238,6 +238,10 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
         }
 
         // log into server
+        message = peerHandler.obtainMessage();
+        message.what = LOGIN;
+        message.sendToTarget();
+
     }
 
     private void initVideoStreamsViews() throws WoogeenException{
@@ -504,66 +508,32 @@ public class MainActivity extends AppCompatActivity  implements SurfaceHolder.Ca
                 @Override
                 public void run() {
                     destId = peerId;
-                    final android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(MainActivity.this);
-                    builder.setTitle("Video Invitation");
-                    builder.setMessage("Do you want to connect with " + peerId + "?");
-                    builder.setPositiveButton("OK",
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog,
-                                                    int which) {
-                                    peerClient.accept(destId,
-                                            new ActionCallback<Void>() {
+                    // auto accept
+                    peerClient.accept(destId,
+                            new ActionCallback<Void>() {
 
-                                                @Override
-                                                public void onSuccess(Void result) {
-                                                    runOnUiThread(new Runnable() {
-                                                        @Override
-                                                        public void run() {
+                                @Override
+                                public void onSuccess(Void result) {
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            Toast.makeText(MainActivity.this,"Connected to " + peerId, Toast.LENGTH_SHORT).show();
                                                             /*
                                                             sendMsgBtn.setEnabled(true);
                                                             startVideoBtn.setEnabled(true);
                                                             destIdEdTx.setText(destId);
                                                             disconnectBtn.setEnabled(true);
                                                             */
-                                                        }});
-                                                }
-
-                                                @Override
-                                                public void onFailure(
-                                                        WoogeenException e) {
-                                                    Log.d(TAG, e.getMessage());
-                                                }
-
-                                            });
+                                        }});
                                 }
-                            });
-                    builder.setNeutralButton("Cancel",
-                            new DialogInterface.OnClickListener() {
+
                                 @Override
-                                public void onClick(DialogInterface dialog,
-                                                    int which) {
-                                    peerClient.deny(destId,
-                                            new ActionCallback<Void>() {
-
-                                                @Override
-                                                public void onSuccess(
-                                                        Void result) {
-                                                    Log.d(TAG,
-                                                            "Denied invitation from "
-                                                                    + destId);
-                                                }
-
-                                                @Override
-                                                public void onFailure(
-                                                        WoogeenException e) {
-                                                    Log.d(TAG, e.getMessage());
-                                                }
-
-                                            });
+                                public void onFailure(
+                                        WoogeenException e) {
+                                    Log.d(TAG, e.getMessage());
                                 }
+
                             });
-                    builder.create().show();
                 }
             });
         }
